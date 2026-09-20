@@ -1,0 +1,55 @@
+{
+  "_comment": "Sample events demonstrating a variety of device types. Load any subset into the incident engine.",
+  "events": [
+    {
+      "event_id": "evt-001",
+      "timestamp": "2026-09-20T06:00:00Z",
+      "device_id": "door-back-01",
+      "device_type": "door_sensor",
+      "event_type": "opened",
+      "value": null,
+      "location": "back_door",
+      "metadata": {"floor": "ground"}
+    },
+    {
+      "event_id": "evt-002",
+      "timestamp": "2026-09-20T06:01:30Z",
+      "device_id": "motion-hallway-01",
+      "device_type": "motion_sensor",
+      "event_type": "detected",
+      "value": null,
+      "location": "hallway",
+      "metadata": {}
+    },
+    {
+      "event_id": "evt-003",
+      "timestamp": "2026-09-20T07:00:00Z",
+      "device_id": "washer-01",
+      "device_type": "appliance",
+      "event_type": "running",
+      "value": null,
+      "location": "laundry_room",
+      "metadata": {"appliance_name": "washing_machine"}
+    },
+    {
+      "event_id": "evt-004",
+      "timestamp": "2026-09-20T07:05:00Z",
+      "device_id": "water-laundry-01",
+      "device_type": "water_sensor",
+      "event_type": "moisture_detected",
+      "value": 0.65,
+      "location": "laundry_room",
+      "metadata": {}
+    },
+    {
+      "event_id": "evt-005",
+      "timestamp": "2026-09-20T08:00:00Z",
+      "device_id": "occupancy-living-01",
+      "device_type": "occupancy_sensor",
+      "event_type": "person_detected",
+      "value": null,
+      "location": "living_room",
+      "metadata": {}
+    }
+  ]
+}

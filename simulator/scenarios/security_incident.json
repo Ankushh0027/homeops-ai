@@ -1,0 +1,37 @@
+{
+  "_comment": "Security incident scenario: back door opened → motion detected in hallway → no occupancy confirmed.",
+  "scenario": "security_incident",
+  "description": "An entry point is opened and motion is subsequently detected with no recognised resident present.",
+  "events": [
+    {
+      "event_id": "sec-001",
+      "timestamp": "2026-09-20T02:15:00Z",
+      "device_id": "door-back-01",
+      "device_type": "door_sensor",
+      "event_type": "opened",
+      "value": null,
+      "location": "back_door",
+      "metadata": {"note": "detected by magnetic contact sensor"}
+    },
+    {
+      "event_id": "sec-002",
+      "timestamp": "2026-09-20T02:15:45Z",
+      "device_id": "motion-hallway-01",
+      "device_type": "motion_sensor",
+      "event_type": "detected",
+      "value": null,
+      "location": "hallway",
+      "metadata": {}
+    },
+    {
+      "event_id": "sec-003",
+      "timestamp": "2026-09-20T02:16:10Z",
+      "device_id": "motion-kitchen-01",
+      "device_type": "motion_sensor",
+      "event_type": "detected",
+      "value": null,
+      "location": "kitchen",
+      "metadata": {}
+    }
+  ]
+}

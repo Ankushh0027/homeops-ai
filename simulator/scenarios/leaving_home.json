@@ -1,0 +1,47 @@
+{
+  "_comment": "Leaving home scenario: user departing with back door open, appliance running, light on, security disarmed.",
+  "scenario": "leaving_home",
+  "description": "User indicates they are leaving while several home states are unresolved.",
+  "events": [
+    {
+      "event_id": "dep-001",
+      "timestamp": "2026-09-20T08:00:00Z",
+      "device_id": "door-back-01",
+      "device_type": "door_sensor",
+      "event_type": "opened",
+      "value": null,
+      "location": "back_door",
+      "metadata": {}
+    },
+    {
+      "event_id": "dep-002",
+      "timestamp": "2026-09-20T08:05:00Z",
+      "device_id": "oven-kitchen-01",
+      "device_type": "appliance",
+      "event_type": "running",
+      "value": null,
+      "location": "kitchen",
+      "metadata": {"appliance_name": "oven", "temperature_c": 180}
+    },
+    {
+      "event_id": "dep-003",
+      "timestamp": "2026-09-20T08:06:00Z",
+      "device_id": "light-living-01",
+      "device_type": "light_sensor",
+      "event_type": "on",
+      "value": null,
+      "location": "living_room",
+      "metadata": {}
+    },
+    {
+      "event_id": "dep-004",
+      "timestamp": "2026-09-20T08:10:00Z",
+      "device_id": "user-phone-01",
+      "device_type": "occupancy_sensor",
+      "event_type": "user_departing",
+      "value": null,
+      "location": "front_door",
+      "metadata": {"method": "app_button"}
+    }
+  ]
+}
