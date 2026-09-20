@@ -1,55 +1,98 @@
 # HomeOps-AI Architecture
 
-## Overview
+## Phase Status
+
+| Phase | Status | Description |
+|---|---|---|
+| Phase 1 | ✅ Complete | Deterministic incident engine + safety policy + simulator |
+| Phase 2 | ✅ Complete | MCP server with Streamable HTTP transport (7 tools) |
+| Phase 3 | Planned | Alexa+, Strands agents, Amazon Bedrock |
+
+
 
 HomeOps-AI is a deterministic incident-response system for connected homes. It
 correlates fragmented device events into meaningful incidents, assesses risk,
 and recommends safe responses — all without making autonomous physical decisions.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          HomeOps-AI MVP                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   Simulator / Real Events                                               │
-│   ┌───────────────────────┐                                             │
-│   │  simulator/scenarios/ │  JSON event sequences                       │
-│   │  simulator/events/    │  ad-hoc sample events                       │
-│   └──────────┬────────────┘                                             │
-│              │ List[HomeEvent]                                           │
-│              ▼                                                           │
-│   ┌───────────────────────┐                                             │
-│   │  app/models/events.py │  Pydantic-validated typed models            │
-│   └──────────┬────────────┘                                             │
-│              │ List[HomeEvent]                                           │
-│              ▼                                                           │
-│   ┌───────────────────────┐                                             │
-│   │  app/incidents/       │                                             │
-│   │    engine.py          │  IncidentEngine.process()                   │
-│   │    rules.py           │  rule_security_incident()                   │
-│   │                       │  rule_water_hazard()                        │
-│   │                       │  rule_leaving_home()                        │
-│   │    schemas.py         │  Incident, Severity, IncidentType           │
-│   └──────────┬────────────┘                                             │
-│              │ List[Incident]                                            │
-│              ▼                                                           │
-│   ┌───────────────────────┐                                             │
-│   │  app/safety/          │                                             │
-│   │    policy.py          │  evaluate_policy() → SafetyDecision         │
-│   │                       │  execute_safe_action() → ALWAYS RAISES      │
-│   │    schemas.py         │  SafetyDecision, RiskLevel, ActionPermission│
-│   └──────────┬────────────┘                                             │
-│              │ SafetyDecision                                            │
-│              ▼                                                           │
-│   ┌───────────────────────┐                                             │
-│   │  app/main.py          │  CLI report output (human-readable)         │
-│   └───────────────────────┘                                             │
-│                                                                         │
-│   ┌───────────────────────┐  ┌──────────────────────────────────────┐  │
-│   │  app/mcp/             │  │  app/agents/                         │  │
-│   │  (placeholder)        │  │  (placeholder)                       │  │
-│   │  Future: MCP tools    │  │  Future: Strands/Bedrock agents      │  │
-│   └───────────────────────┘  └──────────────────────────────────────┘  │
++-------------------------------------------------------------------------+
+|                          HomeOps-AI Phase 2                             |
++-------------------------------------------------------------------------+
+|                                                                         |
+|   MCP Client (Agent / Alexa+ / Strands - future)                        |
+|              |  Streamable HTTP  (http://host:8000/mcp)                 |
+|              v                                                           |
+|   +----------------------------+                                        |
+|   |  app/mcp/server.py         |  MCPServer (MCP SDK 2.2.0)            |
+|   |  app/mcp/tools.py          |  7 tool handler adapters              |
+|   |  app/mcp/context.py        |  AppContext (dependency injection)    |
+|   +----------------------------+                                        |
+|              |                                                           |
+|              v                                                           |
+|   +----------------------------+  +-----------------------------+       |
+|   |  app/services/             |  |  app/models/events.py       |       |
+|   |    home_state.py           |  |  HomeEvent (Pydantic v2)    |       |
+|   |    incident_history.py     |  +-----------------------------+       |
+|   |    (SQLite persistence)    |                                        |
+|   +----------------------------+                                        |
+|              |                                                           |
+|              v                                                           |
+|   +----------------------------+                                        |
+|   |  app/incidents/            |                                        |
+|   |    engine.py               |  IncidentEngine.process()             |
+|   |    rules.py                |  rule_security_incident()             |
+|   |                            |  rule_water_hazard()                  |
+|   |                            |  rule_leaving_home()                  |
+|   |    schemas.py              |  Incident, Severity, IncidentType     |
+|   +----------------------------+                                        |
+|              |                                                           |
+|              v                                                           |
+|   +----------------------------+                                        |
+|   |  app/safety/               |                                        |
+|   |    policy.py               |  evaluate_policy() -> SafetyDecision  |
+|   |                            |  execute_safe_action() -> ALWAYS RAISES|
+|   |    schemas.py              |  SafetyDecision, RiskLevel            |
+|   +----------------------------+                                        |
+|                                                                         |
+|   +----------------------------+  +-----------------------------+       |
+|   |  app/agents/ (stub)        |  |  app/mcp/context.py         |       |
+|   |  Future: Strands/Bedrock   |  |  AppContext singleton        |       |
+|   +----------------------------+  +-----------------------------+       |
++-------------------------------------------------------------------------+
+```
+
+## Phase 2 MCP Architecture
+
+```
+MCP Client
+  |
+  | Streamable HTTP (MCP SDK 2.2.0)
+  |
+  v
+HomeOps MCP Server (app/mcp/server.py)
+  |
+  +--[Tool 1]--> get_home_state      --> HomeStateService
+  +--[Tool 2]--> get_recent_events   --> HomeStateService
+  +--[Tool 3]--> investigate_incident --> IncidentEngine + HomeStateService
+  +--[Tool 4]--> assess_risk          --> evaluate_policy()
+  +--[Tool 5]--> recommend_response   --> evaluate_policy()
+  +--[Tool 6]--> execute_safe_action  --> ALWAYS BLOCKED (AutonomousActionForbiddenError)
+  +--[Tool 7]--> record_incident      --> IncidentHistoryStore (SQLite)
+```
+
+### Why MCP is separated from business logic
+
+MCP tool handlers (`tools.py`) are **thin adapters**. They:
+- Sanitise and validate untrusted MCP input
+- Delegate all reasoning to the deterministic core
+- Return structured JSON responses
+
+No business logic lives in the MCP layer. This means:
+- The core can be tested without MCP
+- The MCP layer can be replaced (e.g. REST, gRPC) without touching the engine
+- Future agent frameworks (Strands, Bedrock) can use the same tool handlers
+
+
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 

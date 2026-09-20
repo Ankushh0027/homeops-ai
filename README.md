@@ -55,17 +55,48 @@ On user departure, audits:
 
 ---
 
+## Phase Status
+
+| Phase | Status | Description |
+|---|---|---|
+| **Phase 1** | ✅ Complete | Deterministic engine, safety policy, simulator, 116 tests |
+| **Phase 2** | ✅ Complete | MCP server (Streamable HTTP), 7 tools, 103 MCP tests |
+| **Phase 3** | Planned | Alexa+, Strands agents, Amazon Bedrock |
+
+---
+
 ## Architecture
 
+### Phase 1 Core
+
 ```
-Simulator JSON ──► HomeEvent (Pydantic) ──► IncidentEngine ──► Incident[]
-                                                                    │
-                                                                    ▼
-                                                           evaluate_policy()
-                                                                    │
-                                                                    ▼
-                                                            SafetyDecision
+Simulator JSON --> HomeEvent (Pydantic) --> IncidentEngine --> Incident[]
+                                                                   |
+                                                                   v
+                                                          evaluate_policy()
+                                                                   |
+                                                                   v
+                                                           SafetyDecision
 ```
+
+### Phase 2: MCP Layer
+
+```
+MCP Client
+  |
+  | Streamable HTTP  (http://host:8000/mcp)
+  v
+HomeOps MCP Server  (app/mcp/server.py)
+  |
+  +--> HomeStateService     (app/services/home_state.py)
+  |
+  +--> IncidentEngine       (app/incidents/engine.py)
+  |
+  +--> SafetyPolicy         (app/safety/policy.py)
+  |
+  +--> IncidentHistoryStore (app/services/incident_history.py  SQLite)
+```
+
 
 Key modules:
 
@@ -80,8 +111,14 @@ Key modules:
 | `app/config.py` | Environment-variable configuration |
 | `app/main.py` | CLI simulation runner |
 | `simulator/scenarios/` | JSON event sequences for each scenario |
+| `app/mcp/server.py` | MCPServer — wires tools, starts Streamable HTTP |
+| `app/mcp/tools.py` | 7 thin MCP tool handler adapters |
+| `app/mcp/context.py` | AppContext — shared dependency injection |
+| `app/services/home_state.py` | In-memory home state + event log |
+| `app/services/incident_history.py` | SQLite incident audit history |
 
 See [`docs/architecture.md`](docs/architecture.md) for a full component diagram.
+See [`docs/mcp.md`](docs/mcp.md) for the MCP tool reference.
 
 ---
 
@@ -146,10 +183,40 @@ python -m app.main --scenario leaving_home
 
 ---
 
+## Running the MCP Server (Phase 2)
+
+```bash
+# Default: binds to 127.0.0.1:8000
+python -m app.mcp.server
+
+# Pre-load a simulator scenario
+python -m app.mcp.server --load-scenario security_incident
+
+# Custom host and port
+python -m app.mcp.server --host 0.0.0.0 --port 8080
+
+# Via uvicorn (ASGI)
+uvicorn app.mcp.server:http_app --host 0.0.0.0 --port 8000
+```
+
+MCP endpoint: `http://127.0.0.1:8000/mcp`
+Transport: **Streamable HTTP** (MCP SDK 2.2.0)
+
+See [`docs/mcp.md`](docs/mcp.md) for full tool documentation.
+
+---
+
 ## Running Tests
 
 ```bash
+# All tests (Phase 1 + Phase 2)
 pytest -v tests/
+
+# Phase 1 only
+pytest -v tests/test_incident_engine.py tests/test_safety_policy.py
+
+# Phase 2 MCP tests only
+pytest -v tests/test_mcp_tools.py tests/test_mcp_registration.py
 ```
 
 With coverage:
@@ -163,26 +230,28 @@ pytest -v --cov=app --cov-report=term-missing tests/
 ## Current Limitations
 
 - **No real device integration.** Events come from simulator JSON files only.
-- **No persistence.** Incidents and decisions are in-memory only.
-- **No notification delivery.** The system reports to stdout only.
+- **Incident history uses SQLite.** No DynamoDB or cloud persistence yet.
+- **No notification delivery.** Incidents are reported via CLI or MCP response only.
 - **No LLM or AI inference.** All reasoning is deterministic rule-based logic.
-- **No web or API interface.** CLI only in the MVP.
+- **Simulator-only home state.** The MCP server serves simulated, not real, device data.
 - **Single-correlation pass.** The engine processes a batch of events once; it
   does not maintain state across time windows between invocations.
 
 ---
 
-## Planned Integrations (Not Implemented)
+## Planned Integrations (Phase 3+)
 
 | Integration | Purpose | Status |
 |---|---|---|
-| **MCP** (Model Context Protocol) | Expose safe home-control tools to AI agents | Planned – phase 2 |
-| **Amazon Bedrock** | LLM-powered incident summarisation and Q&A | Planned – phase 2 |
-| **Strands Agents** | Multi-step AI orchestration for complex incidents | Planned – phase 2 |
-| **Alexa+** | Voice-driven incident reporting and confirmation | Planned – phase 3 |
+| **MCP** (Model Context Protocol) | Expose safe home-control tools to AI agents | ✅ Complete – Phase 2 |
+| **Alexa+** | Voice-driven incident reporting and confirmation | Not implemented – Phase 3 |
+| **Amazon Bedrock** | LLM-powered incident summarisation and Q&A | Not implemented – Phase 3 |
+| **Strands Agents** | Multi-step AI orchestration for complex incidents | Not implemented – Phase 3 |
+| **Real device APIs** | Ring, SmartThings, Home Assistant | Not implemented – Phase 3 |
 
-These integrations are deliberately excluded from the MVP. The deterministic
-engine must be production-ready and fully tested before any AI layer is added.
+> **Alexa+ integration is NOT implemented.** No Alexa+ calls exist in the codebase.
+> **Strands is NOT implemented.** No Strands agent code exists.
+> **Bedrock is NOT implemented.** No LLM calls are made anywhere in the system.
 
 ---
 
@@ -192,20 +261,27 @@ engine must be production-ready and fully tested before any AI layer is added.
 HomeOps-AI/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py           # CLI simulation runner
-│   ├── config.py         # Environment-variable configuration
-│   ├── mcp/              # MCP placeholder (not implemented)
-│   ├── agents/           # Strands/Bedrock placeholder (not implemented)
+│   ├── main.py                     # CLI simulation runner
+│   ├── config.py                   # Environment-variable configuration
+│   ├── mcp/                        # Phase 2: MCP server
+│   │   ├── __init__.py
+│   │   ├── server.py               # MCPServer + Streamable HTTP + __main__
+│   │   ├── tools.py                # 7 tool handler functions
+│   │   └── context.py              # AppContext (dependency injection)
+│   ├── agents/                     # Phase 3 stub: Strands/Bedrock
+│   │   └── __init__.py
 │   ├── incidents/
-│   │   ├── engine.py     # IncidentEngine
-│   │   ├── rules.py      # Correlation rules
-│   │   └── schemas.py    # Incident, Severity, IncidentType
+│   │   ├── engine.py               # IncidentEngine
+│   │   ├── rules.py                # Correlation rules
+│   │   └── schemas.py              # Incident, Severity, IncidentType
 │   ├── safety/
-│   │   ├── policy.py     # evaluate_policy, execute_safe_action
-│   │   └── schemas.py    # SafetyDecision, RiskLevel
-│   ├── services/         # External service adapters (future)
+│   │   ├── policy.py               # evaluate_policy, execute_safe_action
+│   │   └── schemas.py              # SafetyDecision, RiskLevel
+│   ├── services/
+│   │   ├── home_state.py           # In-memory home state service
+│   │   └── incident_history.py     # SQLite incident history store
 │   └── models/
-│       └── events.py     # HomeEvent Pydantic model
+│       └── events.py               # HomeEvent Pydantic model
 ├── simulator/
 │   ├── events/
 │   │   └── sample_events.json
@@ -214,10 +290,13 @@ HomeOps-AI/
 │       ├── water_hazard.json
 │       └── leaving_home.json
 ├── tests/
-│   ├── test_incident_engine.py
-│   └── test_safety_policy.py
+│   ├── test_incident_engine.py     # 56 Phase 1 tests
+│   ├── test_safety_policy.py       # 60 Phase 1 tests
+│   ├── test_mcp_tools.py           # 81 Phase 2 MCP tool tests
+│   └── test_mcp_registration.py    # 22 Phase 2 registration tests
 ├── docs/
-│   └── architecture.md
+│   ├── architecture.md
+│   └── mcp.md                      # MCP tool reference
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt
