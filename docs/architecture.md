@@ -6,9 +6,8 @@
 |---|---|---|
 | Phase 1 | ✅ Complete | Deterministic incident engine + safety policy + simulator |
 | Phase 2 | ✅ Complete | MCP server with Streamable HTTP transport (7 tools) |
-| Phase 3 | Planned | Alexa+, Strands agents, Amazon Bedrock |
-
-
+| Phase 3 | ✅ Complete | Alexa+ integration layer (Adapter, Simulator, MCP Client, Models) |
+| Phase 4 | Planned | Strands agents, Amazon Bedrock LLM reasoning |
 
 HomeOps-AI is a deterministic incident-response system for connected homes. It
 correlates fragmented device events into meaningful incidents, assesses risk,
@@ -16,10 +15,16 @@ and recommends safe responses — all without making autonomous physical decisio
 
 ```
 +-------------------------------------------------------------------------+
-|                          HomeOps-AI Phase 2                             |
+|                          HomeOps-AI Phase 3                             |
 +-------------------------------------------------------------------------+
 |                                                                         |
-|   MCP Client (Agent / Alexa+ / Strands - future)                        |
+|   User Voice Interaction / Simulator (app/alexa/simulator.py)           |
+|              |                                                           |
+|              v                                                           |
+|   Alexa Adapter & Interaction Models (app/alexa/adapter.py, models.py)  |
+|              |                                                           |
+|              v                                                           |
+|   HomeOps MCP Client (app/mcp/client.py)                                |
 |              |  Streamable HTTP  (http://host:8000/mcp)                 |
 |              v                                                           |
 |   +----------------------------+                                        |
@@ -157,11 +162,11 @@ JSON scenario → HomeEvent[] → IncidentEngine → Incident[] → evaluate_pol
    class hierarchies.
 6. **No secrets in code** — all configuration comes from environment variables.
 
-## Future Integration Points
+## Integration Points
 
 | Integration | Package | Status |
 |---|---|---|
-| MCP (Model Context Protocol) | `app/mcp/` | Placeholder – not implemented |
-| Strands agents | `app/agents/` | Placeholder – not implemented |
-| Amazon Bedrock LLM | `app/agents/` | Placeholder – not implemented |
-| Alexa+ | (TBD) | Not started |
+| MCP (Model Context Protocol) | `app/mcp/` | ✅ Complete (Phase 2) |
+| Alexa+ Integration Layer | `app/alexa/` | ✅ Complete (Phase 3) |
+| Strands agents | `app/agents/` | Planned (Phase 4) |
+| Amazon Bedrock LLM | `app/agents/` | Planned (Phase 4) |

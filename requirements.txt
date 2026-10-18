@@ -1,5 +1,10 @@
 pydantic>=2.0.0
 python-dateutil>=2.8.2
+mcp[cli]>=2.2.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+
+# Testing
 pytest>=7.0.0
 pytest-cov>=4.0.0
-mcp[cli]>=2.2.0
+pytest-asyncio>=1.0.0

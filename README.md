@@ -55,45 +55,44 @@ On user departure, audits:
 
 ---
 
-## Phase Status
-
 | Phase | Status | Description |
 |---|---|---|
 | **Phase 1** | ✅ Complete | Deterministic engine, safety policy, simulator, 116 tests |
 | **Phase 2** | ✅ Complete | MCP server (Streamable HTTP), 7 tools, 103 MCP tests |
-| **Phase 3** | Planned | Alexa+, Strands agents, Amazon Bedrock |
+| **Phase 3** | ✅ Complete | Alexa+ integration layer, simulator, MCP client, 45 tests |
+| **Phase 3.5** | ✅ Complete | Alexa+-inspired Conversational Assistant Web UI, 12 experiences, 273 tests |
+| **Phase 4** | Planned | Amazon Bedrock, Strands AI agents |
 
 ---
 
 ## Architecture
 
-### Phase 1 Core
+### Phase 3: Alexa+ Integration & MCP Layer
 
 ```
-Simulator JSON --> HomeEvent (Pydantic) --> IncidentEngine --> Incident[]
-                                                                   |
-                                                                   v
-                                                          evaluate_policy()
-                                                                   |
-                                                                   v
-                                                           SafetyDecision
-```
-
-### Phase 2: MCP Layer
-
-```
-MCP Client
-  |
-  | Streamable HTTP  (http://host:8000/mcp)
-  v
-HomeOps MCP Server  (app/mcp/server.py)
-  |
+User Voice / CLI
+      │
+      ▼
+Alexa+ Simulator (app/alexa/simulator.py)
+      │
+      ▼
+Alexa Adapter (app/alexa/adapter.py)
+  - Intent classification (app/alexa/models.py)
+  - Safety policy preservation
+      │
+      ▼
+HomeOps MCP Client (app/mcp/client.py)
+      │
+      │ Streamable HTTP (http://host:8000/mcp)
+      ▼
+HomeOps MCP Server (app/mcp/server.py)
+  │
   +--> HomeStateService     (app/services/home_state.py)
-  |
+  │
   +--> IncidentEngine       (app/incidents/engine.py)
-  |
+  │
   +--> SafetyPolicy         (app/safety/policy.py)
-  |
+  │
   +--> IncidentHistoryStore (app/services/incident_history.py  SQLite)
 ```
 
@@ -206,17 +205,70 @@ See [`docs/mcp.md`](docs/mcp.md) for full tool documentation.
 
 ---
 
+## Running the Alexa+ Simulation & Demo (Phase 3)
+
+The Alexa+ integration connects conversational voice interactions to the HomeOps MCP server and deterministic safety engine.
+
+```bash
+# Run the automated 11-step hackathon demo scenario:
+python -m app.alexa.simulator --demo
+
+# Run interactive voice prompt loop (REPL):
+python -m app.alexa.simulator --interactive
+
+# Pre-load a specific scenario:
+python -m app.alexa.simulator --scenario water_hazard --interactive
+
+# Connect to a standalone running Streamable HTTP server:
+python -m app.alexa.simulator --mcp-url http://127.0.0.1:8000/mcp --demo
+```
+
+See [`docs/alexa.md`](docs/alexa.md) for full Alexa+ integration documentation.
+
+---
+
+## Running the Conversational Assistant Web UI (Phase 3.5)
+
+HomeOps-AI includes an Alexa+-inspired conversational smart-home safety assistant web interface with progressive disclosure, deterministic safety guardrails, and real Streamable HTTP MCP integration.
+
+```bash
+# Start the unified web server & Streamable HTTP MCP server:
+python -m uvicorn app.web.server:app --host 127.0.0.1 --port 8000
+
+# Open in browser:
+# http://127.0.0.1:8000
+```
+
+### Features & Experiences:
+1. **Conversational Home Screen**: Prominent, calm natural conversation area with progressive disclosure and Web Speech API dictation.
+2. **Home/Device Status**: Real-time connected sensor telemetry queried via `get_home_state`.
+3. **Incident Investigation**: Deterministic correlation engine view with confidence gauge and rule firing.
+4. **Event Timeline**: Interactive vertical chronological timeline marking correlated vs. background sensor events.
+5. **Risk Assessment**: Deterministic 4-level risk matrix with strict policy rationale.
+6. **Evidence & Explanation**: Step-by-step verified facts extracted by correlation rules.
+7. **MCP Tool Activity & Results**: Real Streamable HTTP MCP tool execution audit log with JSON inspector.
+8. **Recommended Response**: Actionable safe next steps.
+9. **Physical-Action Safety Block**: Demonstrates deterministic safety policy blocking autonomous physical device actions.
+10. **Persistent Incident History**: SQLite-backed incident audit store queried via MCP tools.
+11. **MCP Connection Status**: Live `/mcp` health check, transport metrics, and tool registry.
+12. **Responsive Mobile Experience**: Mobile-friendly layout with drawer navigation.
+
+---
+
 ## Running Tests
 
 ```bash
-# All tests (Phase 1 + Phase 2)
+# All tests (Phase 1 + Phase 2 + Phase 3 + Phase 3.5: 273 tests)
 pytest -v tests/
 
-# Phase 1 only
-pytest -v tests/test_incident_engine.py tests/test_safety_policy.py
+# Phase 3 Alexa+ integration tests only (45 tests)
+pytest -v tests/test_alexa_adapter.py tests/test_alexa_simulator.py
 
-# Phase 2 MCP tests only
+# Phase 2 MCP tests only (103 tests)
 pytest -v tests/test_mcp_tools.py tests/test_mcp_registration.py
+
+# Phase 1 deterministic core only (116 tests)
+pytest -v tests/test_incident_engine.py tests/test_safety_policy.py
 ```
 
 With coverage:
@@ -229,29 +281,22 @@ pytest -v --cov=app --cov-report=term-missing tests/
 
 ## Current Limitations
 
-- **No real device integration.** Events come from simulator JSON files only.
-- **Incident history uses SQLite.** No DynamoDB or cloud persistence yet.
-- **No notification delivery.** Incidents are reported via CLI or MCP response only.
-- **No LLM or AI inference.** All reasoning is deterministic rule-based logic.
-- **Simulator-only home state.** The MCP server serves simulated, not real, device data.
-- **Single-correlation pass.** The engine processes a batch of events once; it
-  does not maintain state across time windows between invocations.
+- **Simulated Alexa+ voice layer.** Because production Alexa+ Add-on access requires private Amazon developer credentials, voice transcription/synthesis is simulated via `app.alexa.simulator`. The MCP server, tools, incident engine, safety policy, and SQLite history are 100% real.
+- **No real physical device execution.** In the current release, `execute_safe_action` always blocks autonomous device execution.
+- **Incident history uses SQLite.** Zero-infrastructure local database; DynamoDB planned for future phases.
+- **No LLM or AI inference.** All reasoning is deterministic rule-based logic (Bedrock planned for Phase 4).
 
 ---
 
-## Planned Integrations (Phase 3+)
+## Planned Integrations (Phase 4+)
 
 | Integration | Purpose | Status |
 |---|---|---|
 | **MCP** (Model Context Protocol) | Expose safe home-control tools to AI agents | ✅ Complete – Phase 2 |
-| **Alexa+** | Voice-driven incident reporting and confirmation | Not implemented – Phase 3 |
-| **Amazon Bedrock** | LLM-powered incident summarisation and Q&A | Not implemented – Phase 3 |
-| **Strands Agents** | Multi-step AI orchestration for complex incidents | Not implemented – Phase 3 |
-| **Real device APIs** | Ring, SmartThings, Home Assistant | Not implemented – Phase 3 |
-
-> **Alexa+ integration is NOT implemented.** No Alexa+ calls exist in the codebase.
-> **Strands is NOT implemented.** No Strands agent code exists.
-> **Bedrock is NOT implemented.** No LLM calls are made anywhere in the system.
+| **Alexa+** | Voice-driven incident reporting and confirmation | ✅ Complete – Phase 3 |
+| **Amazon Bedrock** | LLM-powered incident summarisation and Q&A | Planned – Phase 4 |
+| **Strands Agents** | Multi-step AI orchestration for complex incidents | Planned – Phase 4 |
+| **Real device APIs** | Ring, SmartThings, Home Assistant | Future |
 
 ---
 
@@ -263,12 +308,18 @@ HomeOps-AI/
 │   ├── __init__.py
 │   ├── main.py                     # CLI simulation runner
 │   ├── config.py                   # Environment-variable configuration
-│   ├── mcp/                        # Phase 2: MCP server
+│   ├── alexa/                      # Phase 3: Alexa+ integration layer
+│   │   ├── __init__.py
+│   │   ├── adapter.py              # AlexaAdapter (intent dispatch, speech, safety)
+│   │   ├── models.py               # AlexaRequest, AlexaResponse, AlexaIntent
+│   │   └── simulator.py            # AlexaSimulator (CLI REPL & 11-step demo)
+│   ├── mcp/                        # Phase 2: MCP server & client
 │   │   ├── __init__.py
 │   │   ├── server.py               # MCPServer + Streamable HTTP + __main__
+│   │   ├── client.py               # HomeOpsMCPClient (HTTP & in-process)
 │   │   ├── tools.py                # 7 tool handler functions
 │   │   └── context.py              # AppContext (dependency injection)
-│   ├── agents/                     # Phase 3 stub: Strands/Bedrock
+│   ├── agents/                     # Phase 4 stub: Strands/Bedrock
 │   │   └── __init__.py
 │   ├── incidents/
 │   │   ├── engine.py               # IncidentEngine
@@ -290,13 +341,16 @@ HomeOps-AI/
 │       ├── water_hazard.json
 │       └── leaving_home.json
 ├── tests/
-│   ├── test_incident_engine.py     # 56 Phase 1 tests
-│   ├── test_safety_policy.py       # 60 Phase 1 tests
+│   ├── test_incident_engine.py     # 56 Phase 1 engine tests
+│   ├── test_safety_policy.py       # 60 Phase 1 safety policy tests
 │   ├── test_mcp_tools.py           # 81 Phase 2 MCP tool tests
-│   └── test_mcp_registration.py    # 22 Phase 2 registration tests
+│   ├── test_mcp_registration.py    # 22 Phase 2 registration tests
+│   ├── test_alexa_adapter.py       # 38 Phase 3 adapter tests
+│   └── test_alexa_simulator.py     # 7 Phase 3 simulator tests
 ├── docs/
 │   ├── architecture.md
-│   └── mcp.md                      # MCP tool reference
+│   ├── mcp.md                      # MCP tool reference
+│   └── alexa.md                    # Alexa+ integration reference
 ├── .env.example
 ├── .gitignore
 ├── requirements.txt

@@ -148,6 +148,10 @@ class IncidentHistoryStore:
         ).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
+    def get_incident_history(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Return recent history entries, newest first (alias for get_all)."""
+        return self.get_all(limit=limit)
+
     def get_by_id(self, incident_id: str) -> Optional[dict[str, Any]]:
         """Return a single history entry by incident_id, or None."""
         if not incident_id or not isinstance(incident_id, str):

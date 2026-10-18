@@ -1,0 +1,1461 @@
+/* ==========================================================================
+   HomeOps-AI Design System
+   Alexa+-inspired conversational smart-home assistant.
+   Aesthetic: Warm white / light neutral, restrained dark typography,
+              subtle teal & blue accents, spacious layout, refined motion.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Surfaces & Canvas */
+  --bg-canvas: #F8F8F5;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F3F3ED;
+  --bg-surface-elevated: #FFFFFF;
+  --bg-surface-glass: rgba(255, 255, 255, 0.85);
+  --bg-surface-warm: #FAF9F5;
+
+  /* Borders & Dividers */
+  --border-subtle: #E8E8E1;
+  --border-medium: #DDDDD2;
+  --border-strong: #C4C4B5;
+  --border-focus: #0D9488;
+
+  /* Typography */
+  --text-primary: #1A1D20;
+  --text-secondary: #4A515A;
+  --text-tertiary: #7A828E;
+  --text-quaternary: #A0A7B2;
+  --text-inverse: #FFFFFF;
+
+  /* Brand Accents */
+  --brand-teal: #0D9488;
+  --brand-teal-hover: #0F766E;
+  --brand-teal-light: #CCFBF1;
+  --brand-teal-soft: #F0FDFA;
+  --brand-blue: #0284C7;
+  --brand-blue-hover: #0369A1;
+  --brand-blue-light: #E0F2FE;
+  --brand-blue-soft: #F0F9FF;
+
+  /* Risk & Safety Tones */
+  --risk-critical: #DC2626;
+  --risk-critical-subtle: #FEF2F2;
+  --risk-critical-border: #FECACA;
+
+  --risk-high: #EA580C;
+  --risk-high-subtle: #FFF7ED;
+  --risk-high-border: #FFEDD5;
+
+  --risk-medium: #D97706;
+  --risk-medium-subtle: #FFFBEB;
+  --risk-medium-border: #FEF3C7;
+
+  --risk-low: #059669;
+  --risk-low-subtle: #ECFDF5;
+  --risk-low-border: #A7F3D0;
+
+  --safety-blocked: #B91C1C;
+  --safety-blocked-bg: #FEF2F2;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(26, 29, 32, 0.06), 0 2px 6px -1px rgba(26, 29, 32, 0.03);
+  --shadow-lg: 0 12px 24px -4px rgba(26, 29, 32, 0.08), 0 4px 8px -2px rgba(26, 29, 32, 0.04);
+  --shadow-float: 0 20px 32px -6px rgba(26, 29, 32, 0.1), 0 8px 16px -4px rgba(26, 29, 32, 0.05);
+
+  /* Transitions */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms var(--ease-spring);
+  --transition-slow: 400ms var(--ease-spring);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .brand-font {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+code, pre, .mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+}
+
+/* Accessibility: Focus visible */
+:focus-visible {
+  outline: 2px solid var(--brand-teal);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Header & Navigation
+   ========================================================================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-orb {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #0D9488 0%, #0284C7 100%);
+  box-shadow: 0 0 16px rgba(13, 148, 136, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  position: relative;
+  transition: transform var(--transition-normal);
+}
+
+.brand-orb::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid rgba(13, 148, 136, 0.4);
+  animation: pulse-ring 3s infinite var(--ease-spring);
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+.brand-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.brand-tag {
+  font-size: 0.68rem;
+  font-weight: 500;
+  background: var(--brand-teal-soft);
+  color: var(--brand-teal);
+  border: 1px solid var(--brand-teal-light);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.scenario-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+}
+
+.scenario-pill select {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.825rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.mcp-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--brand-teal);
+  background: var(--brand-teal-soft);
+  border: 1px solid var(--brand-teal-light);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-teal);
+  box-shadow: 0 0 6px var(--brand-teal);
+}
+
+.sim-disclaimer-badge {
+  font-size: 0.72rem;
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Navigation Bar
+   ========================================================================== */
+
+.nav-bar-container {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.4rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+.nav-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-surface-subtle);
+  padding: 0.25rem;
+  border-radius: var(--radius-full);
+}
+
+.nav-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  border: none;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--radius-full);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.nav-tab-btn.active {
+  background: var(--bg-surface);
+  color: var(--brand-teal);
+  box-shadow: var(--shadow-sm);
+  font-weight: 600;
+}
+
+.nav-badge {
+  font-size: 0.7rem;
+  background: var(--brand-teal);
+  color: white;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Main App Layout
+   ========================================================================== */
+
+.app-main {
+  flex: 1;
+  max-width: 1380px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1.5rem;
+  position: relative;
+}
+
+/* View Sections */
+.view-section {
+  display: none;
+  width: 100%;
+  animation: fadeIn 200ms ease;
+}
+
+.view-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Experience 1: Conversational Home Screen
+   ========================================================================== */
+
+.conversation-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.conversation-column {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 195px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  scroll-behavior: smooth;
+}
+
+/* Welcome Assistant Greeting */
+.welcome-hero {
+  background: linear-gradient(180deg, var(--bg-surface-warm) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.welcome-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.welcome-avatar-orb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #0D9488 0%, #0284C7 50%, #38BDF8 100%);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.welcome-title-wrap h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.welcome-title-wrap p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.suggestion-prompts-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.prompt-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.prompt-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.825rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.prompt-chip:hover {
+  background: var(--brand-teal-soft);
+  border-color: var(--brand-teal);
+  color: var(--brand-teal);
+  transform: translateY(-1px);
+}
+
+/* Chat Message Turns */
+.chat-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 88%;
+  animation: fadeIn 200ms ease;
+}
+
+.chat-turn.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-turn.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 95%;
+}
+
+.turn-sender {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  padding: 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.bubble {
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  position: relative;
+}
+
+.chat-turn.user .bubble {
+  background: var(--text-primary);
+  color: var(--text-inverse);
+  border-bottom-right-radius: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-turn.assistant .bubble {
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+}
+
+.speech-text {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.bubble-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 0.5rem;
+}
+
+.speech-synth-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.speech-synth-btn:hover {
+  color: var(--brand-teal);
+  background: var(--brand-teal-soft);
+}
+
+/* Progressive Disclosure Button */
+.investigation-toggle-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--brand-teal-light);
+  color: var(--brand-teal);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.investigation-toggle-btn:hover {
+  background: var(--brand-teal-soft);
+  border-color: var(--brand-teal);
+}
+
+.investigation-toggle-btn .badge-count {
+  background: var(--brand-teal);
+  color: white;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-full);
+}
+
+/* Expandable Inline Investigation Box */
+.inline-investigation-drawer {
+  margin-top: 0.75rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.85rem;
+  animation: fadeIn 150ms ease;
+}
+
+.inline-investigation-drawer.open {
+  display: flex;
+}
+
+/* Composer / Input Area */
+.chat-composer-container {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  position: relative;
+}
+
+.composer-form {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--bg-surface-subtle);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.6rem 0.4rem 1.2rem;
+  transition: all var(--transition-fast);
+}
+
+.composer-form:focus-within {
+  border-color: var(--brand-teal);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+.composer-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.composer-input::placeholder {
+  color: var(--text-quaternary);
+}
+
+.mic-affordance-btn {
+  background: transparent;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.mic-affordance-btn:hover {
+  color: var(--brand-blue);
+  background: var(--brand-blue-soft);
+}
+
+.mic-affordance-btn.recording {
+  color: #DC2626;
+  background: #FEF2F2;
+  animation: pulse-mic 1.2s infinite ease-in-out;
+}
+
+@keyframes pulse-mic {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+  100% { transform: scale(1); }
+}
+
+.send-btn {
+  background: var(--brand-teal);
+  color: white;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.send-btn:hover {
+  background: var(--brand-teal-hover);
+  transform: scale(1.04);
+}
+
+.composer-footer-note {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  width: fit-content;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-teal);
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Side Inspection Drawer (Quick Glance on Home Screen) */
+.glance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title-row h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Device Mini-List */
+.device-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.device-mini-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.825rem;
+}
+
+.device-mini-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.device-status-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+
+.device-status-badge.normal {
+  background: var(--risk-low-subtle);
+  color: var(--risk-low);
+  border: 1px solid var(--risk-low-border);
+}
+
+.device-status-badge.alert {
+  background: var(--risk-high-subtle);
+  color: var(--risk-high);
+  border: 1px solid var(--risk-high-border);
+}
+
+/* ==========================================================================
+   Experience 2: Home & Device Status View
+   ========================================================================== */
+
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.device-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.device-card:hover {
+  border-color: var(--brand-teal);
+  box-shadow: var(--shadow-md);
+}
+
+.device-card.anomaly {
+  border-color: var(--risk-high);
+  background: linear-gradient(180deg, var(--risk-high-subtle) 0%, var(--bg-surface) 60%);
+}
+
+.device-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.device-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+  color: var(--brand-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.device-card.anomaly .device-icon-box {
+  background: var(--risk-high-subtle);
+  color: var(--risk-high);
+}
+
+.device-details h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.device-location {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  text-transform: capitalize;
+}
+
+.device-readings {
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.825rem;
+}
+
+/* ==========================================================================
+   Experience 3, 5, 6, 8, 9: Incident Investigation, Risk, Evidence, Safety
+   ========================================================================== */
+
+.investigation-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.investigation-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Incident Hero Badge */
+.incident-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.incident-type-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+}
+
+.incident-type-tag.security {
+  background: var(--risk-high-subtle);
+  color: var(--risk-high);
+  border: 1px solid var(--risk-high-border);
+}
+
+.incident-type-tag.water {
+  background: var(--brand-blue-soft);
+  color: var(--brand-blue);
+  border: 1px solid var(--brand-blue-light);
+}
+
+.incident-type-tag.departure {
+  background: var(--risk-medium-subtle);
+  color: var(--risk-medium);
+  border: 1px solid var(--risk-medium-border);
+}
+
+/* Confidence Meter */
+.confidence-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.confidence-bar-bg {
+  width: 90px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border-subtle);
+  overflow: hidden;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--brand-teal);
+  transition: width var(--transition-normal);
+}
+
+/* Risk Meter Card */
+.risk-meter-display {
+  background: var(--bg-surface-warm);
+  border: 1.5px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.risk-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  width: fit-content;
+}
+
+.risk-level-badge.HIGH {
+  background: var(--risk-high-subtle);
+  color: var(--risk-high);
+  border: 1px solid var(--risk-high-border);
+}
+
+.risk-level-badge.MEDIUM {
+  background: var(--risk-medium-subtle);
+  color: var(--risk-medium);
+  border: 1px solid var(--risk-medium-border);
+}
+
+.risk-level-badge.LOW {
+  background: var(--risk-low-subtle);
+  color: var(--risk-low);
+  border: 1px solid var(--risk-low-border);
+}
+
+.risk-level-badge.CRITICAL {
+  background: var(--risk-critical-subtle);
+  color: var(--risk-critical);
+  border: 1px solid var(--risk-critical-border);
+}
+
+/* Evidence List */
+.evidence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.evidence-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.evidence-check-icon {
+  color: var(--brand-teal);
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Safety Policy Block Card (NON-NEGOTIABLE GUARANTEE) */
+.safety-guardrail-card {
+  background: var(--safety-blocked-bg);
+  border: 1.5px solid var(--risk-critical-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.safety-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--safety-blocked);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.safety-body {
+  font-size: 0.85rem;
+  color: #7F1D1D;
+  line-height: 1.5;
+}
+
+.manual-action-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.manual-action-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.825rem;
+  color: #991B1B;
+}
+
+/* ==========================================================================
+   Experience 4: Event Timeline
+   ========================================================================== */
+
+.timeline-view-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+}
+
+.timeline-stream {
+  position: relative;
+  padding-left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.timeline-stream::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 9px;
+  width: 2px;
+  background: var(--border-medium);
+}
+
+.timeline-event-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.1rem;
+  transition: all var(--transition-fast);
+}
+
+.timeline-event-node:hover {
+  border-color: var(--brand-teal);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline-event-node::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: -28px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 2.5px solid var(--brand-teal);
+}
+
+.timeline-event-node.correlated {
+  border-color: var(--risk-high-border);
+  background: var(--risk-high-subtle);
+}
+
+.timeline-event-node.correlated::before {
+  border-color: var(--risk-high);
+  background: var(--risk-high);
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.4);
+}
+
+.event-node-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.event-device-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.event-timestamp {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.event-action-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Experience 7 & 11: Real MCP Tool Activity & MCP Connection Settings
+   ========================================================================== */
+
+.mcp-activity-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.mcp-tool-call-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tool-name-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--brand-teal-soft);
+  color: var(--brand-teal);
+  border: 1px solid var(--brand-teal-light);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+}
+
+.tool-latency-badge {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.json-view-box {
+  background: #1E2229;
+  color: #E2E8F0;
+  border-radius: var(--radius-sm);
+  padding: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  overflow-x: auto;
+  max-height: 240px;
+}
+
+/* MCP Settings & Diagnostics Panel */
+.mcp-diagnostics-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.status-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.stat-metric-card {
+  background: var(--bg-surface-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Experience 10: Persistent Incident History
+   ========================================================================== */
+
+.history-table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.history-table th {
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border-medium);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.history-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.history-table tr:hover td {
+  background: var(--bg-surface-warm);
+}
+
+/* ==========================================================================
+   Buttons & Interactive Elements
+   ========================================================================== */
+
+.primary-btn {
+  background: var(--brand-teal);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.primary-btn:hover {
+  background: var(--brand-teal-hover);
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.secondary-btn:hover {
+  background: var(--bg-surface-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* Modal System */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 29, 32, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-window {
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  max-width: 560px;
+  width: 100%;
+  box-shadow: var(--shadow-float);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalScale 200ms ease;
+}
+
+@keyframes modalScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  background: var(--bg-surface-subtle);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* ==========================================================================
+   Experience 12: Responsive Breakpoints (Mobile & Tablet)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .conversation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .glance-panel {
+    display: none;
+  }
+
+  .investigation-container,
+  .mcp-diagnostics-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    padding: 0.6rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .brand-title {
+    font-size: 1rem;
+  }
+
+  .app-main {
+    padding: 0.75rem;
+  }
+
+  .conversation-column {
+    height: calc(100vh - 160px);
+    border-radius: var(--radius-lg);
+  }
+
+  .bubble {
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .chat-turn.assistant {
+    max-width: 100%;
+  }
+
+  .composer-input {
+    font-size: 0.875rem;
+  }
+
+  .nav-bar-container {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .nav-tab-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}

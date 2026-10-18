@@ -52,3 +52,9 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
