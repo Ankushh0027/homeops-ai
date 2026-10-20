@@ -7,6 +7,7 @@ via a .env file (not committed) or via the deployment environment.
 """
 
 import os
+from typing import Optional
 
 
 class Settings:
@@ -18,10 +19,18 @@ class Settings:
     """
 
     # ------------------------------------------------------------------ #
-    # General                                                              #
+    # General & Networking                                                 #
     # ------------------------------------------------------------------ #
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    HOST: str = os.getenv(
+        "HOST",
+        "0.0.0.0" if (os.getenv("PORT") or os.getenv("RENDER")) else "127.0.0.1",
+    )
+    PORT: int = int(os.getenv("PORT", "8000"))
+    PUBLIC_BASE_URL: Optional[str] = os.getenv("PUBLIC_BASE_URL")
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
+    HOMEOPS_DB_PATH: Optional[str] = os.getenv("HOMEOPS_DB_PATH")
 
     # ------------------------------------------------------------------ #
     # Incident engine                                                      #

@@ -101,3 +101,48 @@ async def test_web_static_serving(test_app):
             res_css = await client.get("/static/app.css")
             assert res_css.status_code == 200
             assert "--brand-teal" in res_css.text
+
+
+@pytest.mark.asyncio
+async def test_web_health_endpoints(test_app):
+    """Verify /health and /healthz work without browser session or unsafe actions."""
+    async with test_app.router.lifespan_context(test_app):
+        transport = httpx2.ASGITransport(app=test_app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            for path in ["/health", "/healthz"]:
+                res = await client.get(path)
+                assert res.status_code == 200
+                data = res.json()
+                assert data["status"] == "healthy"
+                assert data["service"] == "HomeOps-AI"
+                assert data["safety_policy"] == "STRICT_DETERMINISTIC"
+
+
+@pytest.mark.asyncio
+async def test_mcp_endpoint_dynamic_resolution(test_app, monkeypatch):
+    """Verify MCP endpoint resolves from request or PUBLIC_BASE_URL."""
+    async with test_app.router.lifespan_context(test_app):
+        transport = httpx2.ASGITransport(app=test_app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            # 1. Derived from request without headers
+            res = await client.get("/api/mcp/status")
+            assert res.status_code == 200
+            assert res.json()["mcp_server"]["endpoint"] == "http://testserver/mcp"
+
+            # 2. Derived with X-Forwarded headers (Render reverse proxy emulation)
+            res_proxy = await client.get(
+                "/api/mcp/status",
+                headers={
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-host": "homeops-ai.onrender.com",
+                },
+            )
+            assert res_proxy.status_code == 200
+            assert res_proxy.json()["mcp_server"]["endpoint"] == "https://homeops-ai.onrender.com/mcp"
+
+            # 3. Explicit PUBLIC_BASE_URL override
+            monkeypatch.setenv("PUBLIC_BASE_URL", "https://custom-domain.example.com")
+            res_env = await client.get("/api/mcp/status")
+            assert res_env.status_code == 200
+            assert res_env.json()["mcp_server"]["endpoint"] == "https://custom-domain.example.com/mcp"
+

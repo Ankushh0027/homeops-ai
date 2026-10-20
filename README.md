@@ -258,8 +258,11 @@ python -m uvicorn app.web.server:app --host 127.0.0.1 --port 8000
 ## Running Tests
 
 ```bash
-# All tests (Phase 1 + Phase 2 + Phase 3 + Phase 3.5: 273 tests)
-pytest -v tests/
+# All tests (Phase 1 + Phase 2 + Phase 3 + Phase 3.5: 275 tests, 2 skipped live server)
+pytest -q
+
+# Run web server and health tests
+pytest -v tests/test_web_server.py
 
 # Phase 3 Alexa+ integration tests only (45 tests)
 pytest -v tests/test_alexa_adapter.py tests/test_alexa_simulator.py
@@ -276,6 +279,20 @@ With coverage:
 ```bash
 pytest -v --cov=app --cov-report=term-missing tests/
 ```
+
+---
+
+## Deployment (Render Free Tier)
+
+HomeOps-AI is pre-configured for one-click or Blueprint deployment on Render's Free Web Service tier:
+
+- **Binding & Port**: Automatically binds to `0.0.0.0` and listens on Render's injected `$PORT`.
+- **Health Check Path**: `/healthz` (and `/health`) for automated zero-downtime health probing without requiring a browser session or triggering any physical or simulated side-effects.
+- **Dynamic MCP Endpoint**: Dynamically derived from reverse proxy headers (`https://<app-name>.onrender.com/mcp`) or pinned via `PUBLIC_BASE_URL`.
+- **Blueprint & Procfile**: Included [`render.yaml`](file:///c:/Users/Ankush/Desktop/HomeOps-AI/render.yaml) and [`Procfile`](file:///c:/Users/Ankush/Desktop/HomeOps-AI/Procfile).
+
+> [!IMPORTANT]
+> **Ephemeral Filesystem on Free Tier**: Render's free tier uses ephemeral container disks. The SQLite incident history database (`homeops.db`) will be reset upon container restart, redeployment, or after idling (15 minutes). For permanent multi-instance persistence, connect an external managed database (e.g. AWS DynamoDB / PostgreSQL).
 
 ---
 

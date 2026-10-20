@@ -58,6 +58,32 @@ class ActionApprovalRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Endpoint & URL Resolution Helpers
+# ---------------------------------------------------------------------------
+
+def resolve_mcp_endpoint(request: Optional[Request] = None) -> str:
+    """Resolve the public MCP Streamable HTTP endpoint URL.
+
+    Derivation priority:
+      1. Explicit PUBLIC_BASE_URL environment variable (if configured)
+      2. Incoming HTTP Request headers (respecting reverse-proxy X-Forwarded-* headers)
+      3. Safe local fallback (http://127.0.0.1:8000/mcp)
+    """
+    public_base = os.getenv("PUBLIC_BASE_URL")
+    if public_base and public_base.strip():
+        return f"{public_base.strip().rstrip('/')}/mcp"
+
+    if request:
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+        if host:
+            return f"{proto}://{host}/mcp"
+        return f"{str(request.base_url).rstrip('/')}/mcp"
+
+    return "http://127.0.0.1:8000/mcp"
+
+
+# ---------------------------------------------------------------------------
 # Application Factory
 # ---------------------------------------------------------------------------
 
@@ -67,9 +93,21 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
     mcp_server = create_server(context=ctx)
     mcp_asgi_app = mcp_server.streamable_http_app()
 
+    env_str = os.getenv("ENVIRONMENT", "development").lower()
+    is_production = env_str == "production"
+
     @asynccontextmanager
     async def lifespan(app_inst: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Initializing HomeOps MCP Streamable HTTP session manager...")
+
+        # Warm-up and verify SQLite incident history store at startup
+        from app.services.incident_history import incident_history
+        try:
+            incident_history.count()
+            logger.info("SQLite incident history store verified at startup.")
+        except Exception as exc:
+            logger.warning("SQLite initialization check encountered: %s", exc)
+
         async with mcp_asgi_app.router.lifespan_context(mcp_asgi_app):
             transport = httpx2.ASGITransport(app=mcp_asgi_app)
             mcp_client = HomeOpsMCPClient(
@@ -97,12 +135,17 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
         description="Conversational smart-home assistant with deterministic safety engine and Streamable HTTP MCP.",
         version="2.0.0",
         lifespan=lifespan,
+        debug=not is_production,
     )
+
+    allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "*")
+    allowed_origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
+    allow_creds = False if allowed_origins == ["*"] else True
 
     app_inst.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
+        allow_origins=allowed_origins,
+        allow_credentials=allow_creds,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -145,7 +188,8 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
             )
         except Exception as exc:
             logger.exception("Chat processing error: %s", exc)
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
+            detail_msg = "An internal error occurred while processing the request." if is_production else str(exc)
+            raise HTTPException(status_code=500, detail=detail_msg) from exc
 
     @app_inst.get("/api/home-state")
     async def get_home_state_endpoint(request: Request, location: Optional[str] = None) -> dict[str, Any]:
@@ -244,7 +288,7 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
             "mcp_server": {
                 "name": "HomeOps-AI",
                 "version": "2.0.0",
-                "endpoint": "http://127.0.0.1:8000/mcp",
+                "endpoint": resolve_mcp_endpoint(request),
                 "transport": "Streamable HTTP (MCP SDK 2.2.0)",
                 "status": "online",
                 "tools_registered": len(tool_list),
@@ -268,6 +312,22 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
             },
         }
 
+    @app_inst.get("/health")
+    @app_inst.get("/healthz")
+    async def health_check_endpoint() -> dict[str, Any]:
+        """Health-check endpoint for orchestrators and monitoring (Render, curl, k8s).
+
+        Performs a fast, safe probe without requiring a browser session or triggering
+        any unsafe physical or simulated actions.
+        """
+        return {
+            "status": "healthy",
+            "service": "HomeOps-AI",
+            "version": "2.0.0",
+            "environment": os.getenv("ENVIRONMENT", "development"),
+            "safety_policy": "STRICT_DETERMINISTIC",
+        }
+
     # Static assets
     if _STATIC_DIR.exists():
         app_inst.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
@@ -286,14 +346,18 @@ def create_app(context: Optional[AppContext] = None) -> FastAPI:
 app = create_app()
 
 
-def run_web_server(host: str = "127.0.0.1", port: int = 8000) -> None:
+def run_web_server(host: Optional[str] = None, port: Optional[int] = None) -> None:
     import uvicorn
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    final_host = host or os.getenv("HOST", "0.0.0.0" if (os.getenv("PORT") or os.getenv("RENDER")) else "127.0.0.1")
+    final_port = port if port is not None else int(os.getenv("PORT", "8000"))
+    uvicorn.run(app, host=final_host, port=final_port, log_level="info")
 
 
 if __name__ == "__main__":
+    default_host = os.getenv("HOST", "0.0.0.0" if (os.getenv("PORT") or os.getenv("RENDER")) else "127.0.0.1")
+    default_port = int(os.getenv("PORT", "8000"))
     parser = argparse.ArgumentParser(description="HomeOps-AI Web & MCP Server")
-    parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"), help="Bind host (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8000")), help="Bind port (default: 8000)")
+    parser.add_argument("--host", default=default_host, help=f"Bind host (default: {default_host})")
+    parser.add_argument("--port", type=int, default=default_port, help=f"Bind port (default: {default_port})")
     args = parser.parse_args()
     run_web_server(host=args.host, port=args.port)
