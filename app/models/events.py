@@ -43,6 +43,7 @@ KNOWN_DEVICE_TYPES: frozenset[str] = frozenset(
         "smoke_sensor",
         "co_sensor",
         "thermostat",
+        "camera",
     }
 )
 
@@ -63,6 +64,11 @@ KNOWN_EVENT_TYPES: frozenset[str] = frozenset(
         "moisture_cleared",
         "moisture_rising",
         "flood_detected",
+        # Smoke / CO
+        "smoke_detected",
+        "smoke_cleared",
+        "co_detected",
+        "co_cleared",
         # Appliance
         "running",
         "stopped",
@@ -77,6 +83,8 @@ KNOWN_EVENT_TYPES: frozenset[str] = frozenset(
         # Generic
         "active",
         "inactive",
+        "unavailable",
+        "tamper",
         "user_departing",
     }
 )

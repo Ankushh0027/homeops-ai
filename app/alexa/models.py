@@ -26,6 +26,9 @@ class AlexaIntent(str, Enum):
     RECOMMENDED_RESPONSE = "recommended_response"
     ACTION_REQUEST = "action_request"
     INCIDENT_HISTORY = "incident_history"
+    CAMERA_QUERY = "camera_query"
+    INTEGRATION_QUERY = "integration_query"
+    DEVICE_QUERY = "device_query"
     UNKNOWN = "unknown"
 
 

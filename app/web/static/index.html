@@ -3,614 +3,693 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HomeOps-AI | Conversational Smart-Home Safety Assistant</title>
-  <meta name="description" content="An Alexa+-inspired conversational smart-home safety assistant with deterministic incident correlation, risk assessment, and Streamable HTTP MCP.">
-  <link rel="stylesheet" href="/static/app.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%230D9488%22/><text y=%22.9em%22 x=%22.2em%22 font-size=%2260%22 fill=%22white%22>⚡</text></svg>">
+  <title>HomeOps-AI | Smart-Home Safety & Camera Intelligence</title>
+  <meta name="description" content="An Alexa+-inspired conversational smart-home safety assistant with camera awareness, genuine object detection, deterministic incident correlation, and Streamable HTTP MCP.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css?v=5.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563EB%22/><text y=%22.75em%22 x=%22.15em%22 font-size=%2265%22 fill=%22white%22>🛡️</text></svg>">
 </head>
 <body>
 
-  <!-- ========================================================================
-       Top Navigation & System Status Header
-       ======================================================================== -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="brand-orb" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          <polyline points="9 22 9 12 15 12 15 22"></polyline>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-title">HomeOps-AI <span class="brand-tag">Conversational Safety</span></div>
-      </div>
-    </div>
-
-    <div class="header-meta">
-      <!-- Scenario Selector -->
-      <div class="scenario-pill" title="Switch simulated home scenario">
-        <span>Scenario:</span>
-        <select id="scenarioSelector" aria-label="Select home scenario">
-          <option value="security_incident" selected>Security Incident (Back Door)</option>
-          <option value="water_hazard">Water Hazard (Laundry Room)</option>
-          <option value="leaving_home">Leaving Home (Door Left Open)</option>
-          <option value="clear">Quiet Home (Normal State)</option>
-        </select>
-      </div>
-
-      <!-- Automated Demo Runner Button -->
-      <button class="primary-btn" id="runDemoBtn" title="Run automated conversational demo walkthrough" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        <span>Run Demo</span>
-      </button>
-
-      <!-- Real Streamable HTTP MCP Live Indicator -->
-      <div class="mcp-live-indicator" id="mcpLiveBadge" title="Connected to Streamable HTTP MCP Server at /mcp">
-        <span class="live-dot"></span>
-        <span id="mcpStatusText">MCP Online (7 Tools)</span>
-      </div>
-
-      <!-- Transparent Simulation Notice -->
-      <div class="sim-disclaimer-badge" title="Home events are simulated for deterministic testing; safety policy is real and enforceable.">
-        Simulated Sensors • Real MCP
-      </div>
-    </div>
-  </header>
-
-  <!-- ========================================================================
-       Persistent Navigation System
-       ======================================================================== -->
-  <nav class="nav-bar-container" aria-label="Main Navigation">
-    <div class="nav-pill-group" role="tablist">
-      <button class="nav-tab-btn active" data-tab="chat" id="tab-chat" role="tab" aria-selected="true" aria-controls="view-chat">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-        Conversation
-      </button>
-
-      <button class="nav-tab-btn" data-tab="devices" id="tab-devices">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
-        Home Devices
-      </button>
-
-      <button class="nav-tab-btn" data-tab="investigation" id="tab-investigation">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        Investigation
-        <span class="nav-badge" id="investigationNavBadge" style="display:none;">1</span>
-      </button>
-
-      <button class="nav-tab-btn" data-tab="timeline" id="tab-timeline">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-        Event Timeline
-      </button>
-
-      <button class="nav-tab-btn" data-tab="safety" id="tab-safety">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-        Risk & Safety
-      </button>
-
-      <button class="nav-tab-btn" data-tab="history" id="tab-history">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-        Audit History
-      </button>
-
-      <button class="nav-tab-btn" data-tab="settings" id="tab-settings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        MCP Settings
-      </button>
-    </div>
-  </nav>
-
-  <!-- ========================================================================
-       Main Content Container
-       ======================================================================== -->
-  <main class="app-main">
+  <div class="app-container">
 
     <!-- ======================================================================
-         EXPERIENCE 1: Conversational Home Screen
+         SIDEBAR NAVIGATION (Deep Charcoal & Warm Alexa+ Accents)
          ====================================================================== -->
-    <section class="view-section active" id="view-chat">
-      <div class="conversation-layout">
-        <div class="conversation-column">
-          <!-- Chat Thread Area -->
-          <div class="chat-scroll-area" id="chatThread">
-            <!-- Welcome Assistant Greeting -->
-            <div class="welcome-hero">
-              <div class="welcome-header">
-                <div class="welcome-avatar-orb">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
+    <aside class="app-sidebar" aria-label="Main Sidebar Navigation">
+      <div class="sidebar-top">
+        <!-- Brand Header -->
+        <div class="sidebar-header">
+          <div class="sidebar-logo-icon" id="headerAssistantOrb" title="HomeOps Assistant AI Orb">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <polyline points="9 12 11 14 15 10"></polyline>
+            </svg>
+          </div>
+          <div>
+            <div class="sidebar-brand-name">HomeOps<span class="brand-ai-badge">AI</span></div>
+            <div class="sidebar-brand-tagline">Safety & Camera Intelligence</div>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="sidebar-nav" role="tablist">
+          <button class="nav-tab-btn active" data-tab="home" id="tab-home" role="tab" aria-selected="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Home</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="cameras" id="tab-cameras" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            <span>Cameras</span>
+            <span class="nav-counter" id="camerasCountBadge">3</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="viewer" id="tab-viewer" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+            <span>Camera Viewer</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="ask" id="tab-ask" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Ask HomeOps</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="investigation" id="tab-investigation" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Safety & Investigation</span>
+            <span class="nav-badge" id="investigationNavBadge" style="display:none;">1</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="settings" id="tab-settings" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>System Status</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-safety-badge">
+          <span class="safety-indicator-dot"></span>
+          <div>
+            <div class="safety-badge-title">Safety Shield Active</div>
+            <div class="safety-badge-subtitle">Autonomous actuation blocked</div>
+          </div>
+        </div>
+
+        <div class="sidebar-user-card">
+          <div class="user-avatar-initials">AG</div>
+          <div class="user-info">
+            <span class="user-name">Ankush Gangwar</span>
+            <span class="user-role">Home Administrator</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ======================================================================
+         MAIN APPLICATION VIEW CONTAINER
+         ====================================================================== -->
+    <main class="app-main-content">
+
+      <!-- Top Action Bar -->
+      <header class="top-action-bar">
+        <div class="top-bar-left">
+          <div class="scenario-pill" title="Switch simulated home scenario">
+            <span class="pill-label">SCENARIO:</span>
+            <select id="scenarioSelector" aria-label="Select home scenario">
+              <option value="security_incident" selected>Security Incident (Back Door)</option>
+              <option value="water_hazard">Water Hazard (Laundry Room)</option>
+              <option value="leaving_home">Leaving Home (Door Left Open)</option>
+              <option value="clear">Quiet Home (Normal State)</option>
+            </select>
+          </div>
+
+          <div class="demo-tag-badge">
+            Synthetic Demo Footage • Real SSDLite Detection
+          </div>
+        </div>
+
+        <div class="top-bar-right">
+          <!-- MCP Live Connection Badge -->
+          <div class="mcp-live-badge" id="mcpLiveBadge" title="Connected to Streamable HTTP MCP Server at /mcp">
+            <span class="live-dot pulse"></span>
+            <span id="mcpStatusText">MCP Online (12 Tools)</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ====================================================================
+           SCREEN 1: HOME (Calm, Warm Alexa+-Inspired Landing Screen)
+           ==================================================================== -->
+      <section class="view-section active" id="view-home">
+        <!-- Hero Warm Greeting Banner -->
+        <div class="alexa-hero-banner">
+          <div class="hero-text-block">
+            <div class="hero-badge-pill">Home Safety Assistant</div>
+            <h1 class="hero-greeting-heading">Good evening, Ankush</h1>
+            <p class="hero-status-message" id="homeGreetingSubtitle">
+              Your home is calm. 3 cameras configured, sensors are monitored, and no physical actions are automated.
+            </p>
+          </div>
+          <div class="hero-action-block">
+            <div class="hero-safety-pill">
+              <span class="shield-icon">🛡️</span>
+              <span id="homeSystemStateText">System Secure</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prominent "Ask HomeOps" Search & Voice Bar -->
+        <div class="home-ask-bar-card">
+          <div class="ask-bar-header">
+            <span class="ask-bar-title">Ask HomeOps</span>
+            <span class="ask-bar-hint">Powered by Conversational Intelligence & MCP Tools</span>
+          </div>
+          <div class="ask-input-row">
+            <div class="ask-search-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <input
+              type="text"
+              id="homeQuickAskInput"
+              class="home-ask-input"
+              placeholder="Ask anything about cameras, back door, recent activity, or security status..."
+              autocomplete="off"
+            />
+            <button class="ask-submit-btn" id="homeQuickAskBtn" title="Ask HomeOps">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              <span>Ask</span>
+            </button>
+          </div>
+
+          <!-- Quick Suggestion Chips -->
+          <div class="home-quick-chips">
+            <span class="chips-label">Suggested:</span>
+            <button class="quick-chip" data-query="What happened at the main gate?">What happened at the main gate?</button>
+            <button class="quick-chip" data-query="Show recent camera events">Show recent camera events</button>
+            <button class="quick-chip" data-query="Check the garage camera">Check the garage camera</button>
+            <button class="quick-chip" data-query="Something happened at my back door. Should I be worried?">Something happened at my back door. Should I be worried?</button>
+            <button class="quick-chip" data-query="List my cameras">List my cameras</button>
+          </div>
+        </div>
+
+        <!-- 2-Column Overview: Camera Cards Summary + Recent Event Feed -->
+        <div class="home-overview-grid">
+          <!-- Camera Status Summary Column -->
+          <div class="home-overview-card">
+            <div class="card-section-header">
+              <div>
+                <h3 class="section-title">Camera Status Overview</h3>
+                <p class="section-subtitle">Real-time status of configured home cameras</p>
+              </div>
+              <button class="link-btn" id="homeViewAllCamerasBtn">View All Cameras ›</button>
+            </div>
+
+            <div class="home-cameras-summary-list" id="homeCamerasSummaryList">
+              <!-- Dynamically populated from GET /api/cameras -->
+              <div class="summary-loading-placeholder">Loading camera registry...</div>
+            </div>
+          </div>
+
+          <!-- Recent Persisted Camera & Safety Events -->
+          <div class="home-overview-card">
+            <div class="card-section-header">
+              <div>
+                <h3 class="section-title">Recent Persisted Events</h3>
+                <p class="section-subtitle">Genuine detections and sensor telemetry</p>
+              </div>
+              <button class="link-btn" id="homeRefreshEventsBtn">Refresh</button>
+            </div>
+
+            <div class="home-events-stream" id="homeRecentEventsStream">
+              <!-- Dynamically populated from GET /api/cameras/.../events and state -->
+              <div class="summary-loading-placeholder">Loading recent events...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 2: CAMERAS (Responsive Grid of Configured Camera Cards)
+           ==================================================================== -->
+      <section class="view-section" id="view-cameras">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Configured Cameras</h1>
+            <p class="page-description">Registered camera sources with honest operational statuses and synthetic demo labeling</p>
+          </div>
+          <button class="secondary-btn" id="refreshCamerasBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Refresh Registry</span>
+          </button>
+        </div>
+
+        <div class="cameras-cards-grid" id="camerasGridContainer">
+          <!-- Populated dynamically via GET /api/cameras -->
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 3: CAMERA VIEWER (Dedicated Screen for Video & Inference)
+           ==================================================================== -->
+      <section class="view-section" id="view-viewer">
+        <div class="page-header-row">
+          <div>
+            <div class="breadcrumb-trail">
+              <span id="viewerBreadcrumbBack" style="cursor: pointer; color: var(--text-tertiary);">Cameras</span>
+              <span>/</span>
+              <span id="viewerBreadcrumbCurrent" style="color: var(--text-primary); font-weight: 700;">Main Gate Camera</span>
+            </div>
+            <h1 class="page-title" id="viewerCameraTitle">Main Gate Camera (CAM-01)</h1>
+          </div>
+
+          <!-- Camera Selector Dropdown -->
+          <div class="viewer-camera-picker">
+            <label for="viewerCameraSelect" class="picker-label">Switch Camera:</label>
+            <select id="viewerCameraSelect" class="styled-select" aria-label="Select camera">
+              <option value="cam-main-gate">Main Gate Camera (DEMO)</option>
+              <option value="cam-back-patio">Back Patio Camera (DEMO)</option>
+              <option value="cam-garage">Detached Garage Camera (OFFLINE)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Main Viewer Layout: Video Left, Analysis & Telemetry Right -->
+        <div class="viewer-layout-grid">
+          <!-- Left Column: Video Player & Controls -->
+          <div class="viewer-video-card">
+            <!-- Simulated Demo Notice Banner -->
+            <div class="viewer-notice-banner" id="viewerNoticeBanner">
+              <span class="notice-badge">DEMO FOOTAGE</span>
+              <span id="viewerNoticeText">Simulated demo video clip for evaluation purposes. Not a live surveillance stream.</span>
+            </div>
+
+            <!-- HTML5 Video Player Container -->
+            <div class="video-player-container" id="videoPlayerContainer">
+              <video
+                id="viewerVideoPlayer"
+                class="viewer-html5-video"
+                controls
+                playsinline
+                loop
+                muted
+                preload="metadata"
+                title="Camera Footage"
+              >
+                <source id="viewerVideoSource" src="/api/cameras/cam-main-gate/footage" type="video/mp4">
+                Your browser does not support HTML5 MP4 video.
+              </video>
+
+              <!-- Offline Overlay for Offline Cameras -->
+              <div class="video-offline-overlay" id="viewerOfflineOverlay" style="display: none;">
+                <div class="offline-icon-circle">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"></path></svg>
                 </div>
-                <div class="welcome-title-wrap">
-                  <h2>Good evening, Alex. HomeOps is monitoring.</h2>
-                  <p>I correlate raw sensor activity across your connected home, assess risk with deterministic safety policies, and help you respond safely.</p>
-                </div>
+                <h3 class="offline-heading">Camera Disconnected</h3>
+                <p class="offline-reason" id="viewerOfflineReason">Device unreachable: timeout on RTSP port 554.</p>
+                <div class="offline-honest-note">No simulated footage is displayed for physical offline cameras.</div>
+              </div>
+            </div>
+
+            <!-- Analysis Action Bar -->
+            <div class="viewer-action-bar">
+              <div>
+                <button class="primary-analyze-btn" id="viewerAnalyzeBtn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                  <span>Analyze Footage with AI</span>
+                </button>
               </div>
 
-              <!-- Prompt Suggestions -->
-              <div class="suggestion-prompts-label">Try asking HomeOps:</div>
-              <div class="prompt-chips-grid">
-                <button class="prompt-chip" data-prompt="Something happened at my back door. Should I be worried?">
-                  <span>🚪</span> “Something happened at my back door. Should I be worried?”
-                </button>
-                <button class="prompt-chip" data-prompt="What's happening at home?">
-                  <span>🏡</span> “What's happening at home?”
-                </button>
-                <button class="prompt-chip" data-prompt="Why did you say something unusual happened?">
-                  <span>🔍</span> “Why did you say something unusual happened?”
-                </button>
-                <button class="prompt-chip" data-prompt="Check for water hazards in the laundry room">
-                  <span>💧</span> “Check for water hazards in the laundry room”
-                </button>
-                <button class="prompt-chip" data-prompt="Turn off the washer">
-                  <span>🛡️</span> “Turn off the washer” (Safety Guardrail Test)
-                </button>
-                <button class="prompt-chip" data-prompt="Has this happened before?">
-                  <span>📜</span> “Has this happened before?”
-                </button>
+              <div class="viewer-model-tag">
+                <span>Model: <strong>Torchvision SSDLite MobileNetV3</strong></span>
+                <span class="tag-separator">•</span>
+                <span>Class: <strong>Person</strong></span>
+              </div>
+            </div>
+
+            <!-- Analysis Loading State -->
+            <div class="analysis-loading-card" id="viewerAnalysisLoading" style="display: none;">
+              <div class="spinner-circle"></div>
+              <div class="loading-text-group">
+                <div class="loading-title">Running Neural Network Inference...</div>
+                <div class="loading-desc">Decoding MP4 frames and evaluating person bounding boxes with SSDLite MobileNetV3. No fake detections.</div>
+              </div>
+            </div>
+
+            <!-- Persisted Camera Events Table / Stream -->
+            <div class="viewer-events-section">
+              <div class="viewer-events-header">
+                <div>
+                  <h3 class="viewer-events-title">Persisted Camera Events</h3>
+                  <div class="viewer-events-subtitle">Records read directly from the HomeOps home state store</div>
+                </div>
+                <button class="secondary-btn btn-sm" id="viewerRefreshEventsBtn">Refresh Events</button>
+              </div>
+
+              <div class="viewer-events-list" id="viewerEventsList">
+                <!-- Dynamically populated from GET /api/cameras/{id}/events -->
               </div>
             </div>
           </div>
 
-          <!-- Typing Indicator (Hidden by default) -->
-          <div id="typingIndicator" class="typing-indicator" style="display:none; margin: 0 1.5rem 0.75rem 1.5rem;">
-            <span style="font-size: 0.8rem; font-weight: 500; color: var(--brand-teal); margin-right: 0.25rem;">HomeOps consulting MCP tools</span>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
-            <div class="typing-dot"></div>
+          <!-- Right Column: Results & Snapshot Card -->
+          <div class="viewer-results-panel">
+            <div class="results-card" id="viewerResultsCard">
+              <div class="results-header">
+                <span class="results-header-title">Detection Evidence</span>
+                <span class="status-pill status-ready" id="viewerResultStatusBadge">Ready</span>
+              </div>
+
+              <!-- Results Body -->
+              <div class="results-body" id="viewerResultsBody">
+                <!-- Initial Empty State -->
+                <div class="results-empty-state" id="viewerResultsEmptyState">
+                  <div class="empty-icon">🔍</div>
+                  <h4 class="empty-title">No Analysis Run Yet</h4>
+                  <p class="empty-desc">Click "Analyze Footage with AI" to decode frames and execute real Torchvision object detection on this camera's clip.</p>
+                </div>
+
+                <!-- Structured Results Display (Hidden until analysis completes) -->
+                <div class="results-data-view" id="viewerResultsDataView" style="display: none;">
+                  <!-- Top KPI Metrics -->
+                  <div class="result-metric-grid">
+                    <div class="metric-box">
+                      <div class="metric-label">Person Detected</div>
+                      <div class="metric-val" id="metricPersonDetected">Yes</div>
+                    </div>
+                    <div class="metric-box">
+                      <div class="metric-label">Model Confidence</div>
+                      <div class="metric-val" id="metricConfidence">93.7%</div>
+                    </div>
+                    <div class="metric-box">
+                      <div class="metric-label">Frames Analyzed</div>
+                      <div class="metric-val" id="metricFramesCount">90</div>
+                    </div>
+                  </div>
+
+                  <!-- Snapshot Preview -->
+                  <div class="snapshot-preview-group" id="viewerSnapshotGroup">
+                    <div class="snapshot-label-row">
+                      <span class="snapshot-label">Reviewable Snapshot (with Bounding Box)</span>
+                      <a id="viewerSnapshotLink" href="#" target="_blank" class="snapshot-open-link">Open Full Size ↗</a>
+                    </div>
+                    <div class="snapshot-frame">
+                      <img id="viewerSnapshotImg" src="" alt="Detection Snapshot" class="snapshot-img" />
+                    </div>
+                  </div>
+
+                  <!-- Detailed Audit Facts Table -->
+                  <div class="audit-facts-table">
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Detection Label</span>
+                      <span class="fact-data" id="factDetectionLabel">person</span>
+                    </div>
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Bounding Box (XYXY)</span>
+                      <span class="fact-data font-mono" id="factBoundingBox">[56, 138, 230, 183]</span>
+                    </div>
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Model Name</span>
+                      <span class="fact-data font-mono" id="factModelName">ssdlite320_mobilenet_v3_large</span>
+                    </div>
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Timestamp (UTC)</span>
+                      <span class="fact-data" id="factTimestamp">-</span>
+                    </div>
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Persisted Event ID</span>
+                      <span class="fact-data font-mono" id="factEventRef">-</span>
+                    </div>
+                    <div class="audit-fact-row">
+                      <span class="fact-name">Detected Frame Index</span>
+                      <span class="fact-data" id="factDetectedFrame">Frame 36</span>
+                    </div>
+                  </div>
+
+                  <!-- Ethical AI Disclaimer -->
+                  <div class="ethical-notice-card">
+                    <div class="ethical-notice-title">🛡️ Safety Notice</div>
+                    <div class="ethical-notice-body">
+                      Person detection confirms human presence via visual inference. Detection alone does not determine identity, authorization, or intent. HomeOps never automatically categorizes a detected person as an "intruder" without verified evidence.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 4: ASK HOMEOPS (Dedicated Conversational Experience)
+           ==================================================================== -->
+      <section class="view-section" id="view-ask">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Ask HomeOps</h1>
+            <p class="page-description">Conversational smart-home assistant with real-time MCP tool disclosure</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <!-- Audio Speaker Toggle -->
+            <button type="button" id="audioToggleBtn" class="secondary-btn" title="Toggle audio voice response">
+              <svg id="audioIconOn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+              <svg id="audioIconOff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+              <span id="audioToggleLabel">Voice: Enabled</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-main-card">
+          <!-- Chat Thread Scroll Area -->
+          <div class="chat-scroll-area" id="chatThread">
+            <!-- Initial Greeting -->
+            <div class="chat-turn assistant">
+              <div class="turn-sender">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                HomeOps Assistant <span class="lang-badge">SECURE</span>
+              </div>
+              <div class="bubble">
+                <div class="speech-text">Hello! I am your HomeOps safety assistant. You can ask me about home sensor status, camera activity, or recent detections.</div>
+              </div>
+            </div>
           </div>
 
-          <!-- Polished Input Composer with Microphone Visual Affordance -->
+          <!-- Typing Indicator -->
+          <div id="typingIndicator" class="typing-indicator-bar" style="display: none;">
+            <span class="typing-dot"></span>
+            <span>HomeOps is querying sensor logs & consulting MCP tools...</span>
+          </div>
+
+          <!-- Suggested Chips Bar -->
+          <div class="chat-suggested-row">
+            <span class="suggested-tag">Quick:</span>
+            <button class="chat-suggest-btn" data-query="What happened at the main gate?">What happened at the main gate?</button>
+            <button class="chat-suggest-btn" data-query="List my cameras">List my cameras</button>
+            <button class="chat-suggest-btn" data-query="Analyze the main gate demo footage">Analyze main gate footage</button>
+            <button class="chat-suggest-btn" data-query="Something happened at my back door. Should I be worried?">Back door investigation</button>
+            <button class="chat-suggest-btn" data-query="Lock my doors (Safety Guardrail Test)">Test: Lock doors</button>
+          </div>
+
+          <!-- Chat Input Composer -->
           <div class="chat-composer-container">
             <form class="composer-form" id="chatComposerForm">
               <input
                 type="text"
                 id="userInputField"
                 class="composer-input"
-                placeholder="Ask HomeOps naturally, e.g. “Something happened at my back door...”"
+                placeholder="Ask HomeOps a question..."
                 autocomplete="off"
                 required
               />
 
-              <!-- Microphone Visual Affordance Button -->
-              <button
-                type="button"
-                id="micBtn"
-                class="mic-affordance-btn"
-                title="Dictate with voice (Web Speech API supported in Chrome/Edge, or click for spoken phrases)"
-                aria-label="Dictate message"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
+              <!-- Voice Input Mic -->
+              <button type="button" id="micBtn" class="mic-affordance-btn" title="Voice input (Web Speech API)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
               </button>
 
-              <!-- Send Button -->
-              <button type="submit" class="send-btn" id="sendBtn" title="Send message" aria-label="Send message">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
+              <!-- Send -->
+              <button type="submit" class="send-btn" id="sendBtn" title="Send message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </button>
             </form>
-
-            <div class="composer-footer-note">
-              <span>Streamable HTTP MCP Client Connected</span>
-              <span id="speechIndicatorLabel">Voice transcription: Browser Web Speech</span>
-            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Quick Glance Side Panel -->
-        <aside class="glance-panel">
-          <!-- Active Incident / Safety Status -->
-          <div class="panel-card" id="glanceIncidentCard">
-            <div class="card-title-row">
-              <h3>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                Current Safety State
-              </h3>
-              <span class="risk-level-badge HIGH" id="glanceRiskBadge">HIGH RISK</span>
-            </div>
-            <div id="glanceIncidentSummary" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.45;">
-              Unverified Entry at back_door correlated from magnetic contact & motion detection.
-            </div>
-            <div class="confidence-box">
-              <span>Confidence:</span>
-              <div class="confidence-bar-bg">
-                <div class="confidence-bar-fill" id="glanceConfidenceFill" style="width: 85%;"></div>
-              </div>
-              <strong id="glanceConfidenceText">85%</strong>
-            </div>
-            <button class="secondary-btn" id="quickViewInvestigationBtn" style="width: 100%; justify-content: center;">
-              Inspect Full Investigation
-            </button>
-          </div>
-
-          <!-- Monitored Devices Mini-List -->
-          <div class="panel-card">
-            <div class="card-title-row">
-              <h3>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect></svg>
-                Active Sensors
-              </h3>
-              <span style="font-size: 0.78rem; color: var(--text-tertiary);" id="glanceDeviceCount">5 Connected</span>
-            </div>
-            <div class="device-mini-list" id="glanceDeviceList">
-              <!-- Populated dynamically via JS -->
-            </div>
-            <button class="secondary-btn" id="quickViewDevicesBtn" style="width: 100%; justify-content: center;">
-              View All Device Details
-            </button>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <!-- ======================================================================
-         EXPERIENCE 2: Home / Device Status View
-         ====================================================================== -->
-    <section class="view-section" id="view-devices">
-      <div class="panel-card">
-        <div class="card-title-row">
+      <!-- ====================================================================
+           SCREEN 5: SAFETY & INVESTIGATIONS (Detailed Incident Assessment)
+           ==================================================================== -->
+      <section class="view-section" id="view-investigation">
+        <div class="page-header-row">
           <div>
-            <h2>Monitored Home Devices & Live Sensor Conditions</h2>
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.2rem;">
-              Real-time telemetry retrieved via HomeOps MCP tool <code>get_home_state</code>.
-            </p>
+            <h1 class="page-title">Safety & Investigations</h1>
+            <p class="page-description">Deterministic incident correlation, sensor timelines, and safety policies</p>
           </div>
-          <button class="secondary-btn" id="refreshDevicesBtn">
+          <button class="secondary-btn" id="refreshInvestigationBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            Refresh State
+            <span>Refresh Investigation</span>
           </button>
         </div>
 
-        <div class="devices-grid" id="fullDevicesGrid">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ======================================================================
-         EXPERIENCE 3, 5, 6, 8, 9: Incident Investigation, Risk & Evidence
-         ====================================================================== -->
-    <section class="view-section" id="view-investigation">
-      <div class="investigation-container">
-        <!-- Left: Incident Analysis & Evidence -->
-        <div class="investigation-card">
-          <div class="incident-header-banner">
-            <div>
-              <span class="incident-type-tag security" id="invTypeTag">SECURITY INCIDENT</span>
-              <h2 id="invTitle" style="margin-top: 0.4rem; font-size: 1.25rem;">Unverified Entry at Back Door</h2>
+        <div class="investigation-grid-3col">
+          <!-- Col 1: Timeline -->
+          <div class="inv-timeline-panel">
+            <h3 class="panel-heading">Incident Timeline</h3>
+            <div id="invTimelineStream" class="timeline-container">
+              <!-- Dynamically populated -->
             </div>
-            <div class="confidence-box">
-              <span>Confidence:</span>
-              <div class="confidence-bar-bg">
-                <div class="confidence-bar-fill" id="invConfidenceFill" style="width: 85%;"></div>
+          </div>
+
+          <!-- Col 2: Centerpiece Details -->
+          <div class="inv-details-panel">
+            <div class="inv-title-row">
+              <div>
+                <h2 id="invTitle" class="inv-main-title">Back door opened</h2>
+                <div class="inv-timestamp" id="invTimestamp">Oct 17, 2026 • 2:15 AM</div>
               </div>
-              <strong id="invConfidenceVal">85%</strong>
+              <span class="severity-pill High" id="invRiskLevelBadge">High Risk</span>
+            </div>
+
+            <div class="ai-investigation-card">
+              <div class="ai-score-ring" id="invConfidenceVal">85%</div>
+              <div class="ai-insight-content">
+                <div class="ai-card-label">Deterministic Correlation</div>
+                <div class="ai-uncertainty-pill">
+                  <span>⚠️</span> Resident presence not verified
+                </div>
+                <div id="invSummaryText" class="ai-summary-text">
+                  No matching resident presence detected in home during this time window.
+                </div>
+              </div>
+            </div>
+
+            <!-- Recommended Actions -->
+            <div class="recommended-action-box">
+              <div class="box-title">Recommended Safety Next Step</div>
+              <div id="invRecommendedActionBox" class="box-content">
+                1. Review camera footage (back door)<br>
+                2. Check if any family member is expected outside<br>
+                3. Consider manual physical verification
+              </div>
+            </div>
+
+            <div class="safety-guardrail-notice">
+              <strong>Deterministic Guardrail:</strong> Even during High Risk incidents, HomeOps will NEVER automatically execute physical locks or device shutdowns. Human confirmation is strictly required.
             </div>
           </div>
 
-          <div>
-            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 0.4rem;">
-              Correlation Summary
-            </h4>
-            <p id="invSummaryText" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.55;">
-              Door opened followed by motion within 300s window with unverified resident presence.
-            </p>
-          </div>
+          <!-- Col 3: Key Facts & Guardrail Test -->
+          <div class="inv-facts-panel">
+            <h3 class="panel-heading">Key Facts</h3>
+            <div class="fact-row">
+              <span class="fact-label">Location</span>
+              <span class="fact-val" id="invFactLocation">Back Door</span>
+            </div>
+            <div class="fact-row">
+              <span class="fact-label">Severity</span>
+              <span class="fact-val text-risk-high" id="invFactSeverity">High</span>
+            </div>
+            <div class="fact-row">
+              <span class="fact-label">Safety Mode</span>
+              <span class="fact-val">Strict Deterministic</span>
+            </div>
 
-          <!-- Evidence List -->
-          <div>
-            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 0.6rem;">
-              Deterministic Evidence Corroboration
-            </h4>
-            <div class="evidence-list" id="invEvidenceList">
-              <!-- Populated dynamically via JS -->
-            </div>
-          </div>
-
-          <!-- Recommended Response Actions -->
-          <div>
-            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 0.6rem;">
-              Recommended Safe Response
-            </h4>
-            <div id="invRecommendedActionBox" style="background: var(--bg-surface-subtle); padding: 0.85rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; color: var(--text-primary); border-left: 3px solid var(--brand-teal);">
-              Review camera footage for the affected entry point. Verify resident presence before approaching.
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Risk Assessment & Safety Guardrail Guarantee -->
-        <div class="investigation-card">
-          <div class="card-title-row">
-            <h3>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              Deterministic Safety Policy Evaluation
-            </h3>
-          </div>
-
-          <!-- Risk Meter -->
-          <div class="risk-meter-display">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary);">Assessed Risk Level</span>
-              <span class="risk-level-badge HIGH" id="invRiskLevelBadge">HIGH RISK</span>
-            </div>
-            <div style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;" id="invPolicyRationale">
-              High-risk incident requires explicit human approval before any action may proceed.
-            </div>
-            <div style="display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--text-tertiary); margin-top: 0.25rem;">
-              <span>Action Permission: <strong id="invActionPerm">BLOCKED_UNTIL_EXPLICIT_APPROVAL</strong></span>
-            </div>
-          </div>
-
-          <!-- NON-NEGOTIABLE SAFETY GUARDRAIL -->
-          <div class="safety-guardrail-card">
-            <div class="safety-header">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-              <span>Autonomous Physical Action Guardrail: ENFORCED</span>
-            </div>
-            <div class="safety-body">
-              HomeOps deterministic policy guarantees that <strong>no physical device action is ever executed autonomously</strong>.
-              Even if requested via voice or chat, physical actions (such as locking doors or shutting water valves) are strictly blocked by the <code>execute_safe_action</code> tool boundary.
-            </div>
-            <ul class="manual-action-list">
-              <li>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Requires verified human-in-the-loop manual confirmation
-              </li>
-              <li>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Zero autonomous physical actuation in MVP
-              </li>
-              <li>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                Auditable decision logged to SQLite audit database
-              </li>
-            </ul>
-          </div>
-
-          <!-- Test Physical Action Safety Boundary -->
-          <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
-            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-tertiary); margin-bottom: 0.5rem;">
-              Interactive Safety Guardrail Verification:
-            </div>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button class="secondary-btn" id="testLockActionBtn" style="font-size: 0.8rem;">
+            <div class="guardrail-test-box">
+              <div class="test-box-title">Safety Boundary Verification</div>
+              <p class="test-box-desc">Attempt an autonomous physical action to verify guardrail enforcement:</p>
+              <button class="secondary-btn btn-sm" id="testLockActionBtn" style="width: 100%; justify-content: center;">
                 Request: "Lock Back Door"
               </button>
-              <button class="secondary-btn" id="testWasherActionBtn" style="font-size: 0.8rem;">
-                Request: "Turn Off Washer"
-              </button>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ======================================================================
-         EXPERIENCE 4: Event Timeline
-         ====================================================================== -->
-    <section class="view-section" id="view-timeline">
-      <div class="timeline-view-card">
-        <div class="card-title-row">
+      <!-- ====================================================================
+           SCREEN 6: SYSTEM STATUS & SETTINGS (Clean Transparent System View)
+           ==================================================================== -->
+      <section class="view-section" id="view-settings">
+        <div class="page-header-row">
           <div>
-            <h2>Chronological Sensor Event Timeline</h2>
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.2rem;">
-              Showing raw events ingested from simulated devices. Red/orange nodes indicate correlated incident events.
-            </p>
-          </div>
-          <button class="secondary-btn" id="refreshTimelineBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            Refresh Timeline
-          </button>
-        </div>
-
-        <div class="timeline-stream" id="fullTimelineStream">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </div>
-    </section>
-
-    <!-- ======================================================================
-         EXPERIENCE 5 & 9: Risk & Safety Policy Matrix
-         ====================================================================== -->
-    <section class="view-section" id="view-safety">
-      <div class="investigation-container">
-        <div class="investigation-card">
-          <h2>Deterministic Safety Policy Matrix</h2>
-          <p style="font-size: 0.875rem; color: var(--text-secondary);">
-            HomeOps-AI employs a strict 4-level deterministic risk model to prevent AI hallucinations from causing physical home damage or unauthorized entry.
-          </p>
-
-          <table class="history-table" style="margin-top: 0.5rem;">
-            <thead>
-              <tr>
-                <th>Risk Level</th>
-                <th>Permitted Response</th>
-                <th>Autonomous Actuation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="risk-level-badge LOW" style="font-size: 0.75rem;">LOW</span></td>
-                <td>Informational response – no confirmation needed</td>
-                <td><strong style="color: #DC2626;">Forbidden (MVP)</strong></td>
-              </tr>
-              <tr>
-                <td><span class="risk-level-badge MEDIUM" style="font-size: 0.75rem;">MEDIUM</span></td>
-                <td>Blocked until user explicitly confirms</td>
-                <td><strong style="color: #DC2626;">Forbidden (MVP)</strong></td>
-              </tr>
-              <tr>
-                <td><span class="risk-level-badge HIGH" style="font-size: 0.75rem;">HIGH</span></td>
-                <td>Blocked until explicit approval; only safe suggestions</td>
-                <td><strong style="color: #DC2626;">Forbidden (MVP)</strong></td>
-              </tr>
-              <tr>
-                <td><span class="risk-level-badge CRITICAL" style="font-size: 0.75rem;">CRITICAL</span></td>
-                <td>No autonomous action; immediate escalation only</td>
-                <td><strong style="color: #DC2626;">Forbidden (MVP)</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="investigation-card">
-          <h2>Safety Boundary Enforcement State</h2>
-          <div class="safety-guardrail-card" style="margin-top: 0.5rem;">
-            <div class="safety-header">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-              Autonomous Action Forbidden Exception (Active)
-            </div>
-            <div class="safety-body">
-              All code paths leading to physical device control route through <code>execute_safe_action()</code> in <code>app/safety/policy.py</code>, which is programmatically locked to raise <code>AutonomousActionForbiddenError</code>.
-            </div>
-          </div>
-
-          <div style="background: var(--bg-surface-warm); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-medium); margin-top: 0.75rem;">
-            <h4 style="font-size: 0.85rem; margin-bottom: 0.35rem;">Human-in-the-Loop Safe Approval Workflow:</h4>
-            <p style="font-size: 0.825rem; color: var(--text-secondary); line-height: 1.5;">
-              When high-risk incidents occur, HomeOps generates safe advice, notifies the homeowner, and directs them to verify camera streams and manually toggle their approved physical devices.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ======================================================================
-         EXPERIENCE 10: Persistent Incident Audit History (SQLite)
-         ====================================================================== -->
-    <section class="view-section" id="view-history">
-      <div class="history-table-card">
-        <div class="card-title-row" style="margin-bottom: 1rem;">
-          <div>
-            <h2>Persistent Incident Audit Log (SQLite)</h2>
-            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.2rem;">
-              Auditable records stored in local SQLite database via HomeOps MCP tool <code>record_incident</code>.
-            </p>
-          </div>
-          <button class="secondary-btn" id="refreshHistoryBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            Refresh History
-          </button>
-        </div>
-
-        <table class="history-table">
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Incident Type</th>
-              <th>Severity</th>
-              <th>Confidence</th>
-              <th>Incident Title</th>
-              <th>Action State</th>
-            </tr>
-          </thead>
-          <tbody id="historyTableBody">
-            <!-- Populated dynamically via JS -->
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ======================================================================
-         EXPERIENCE 7 & 11: Real MCP Tool Activity & Connection Settings
-         ====================================================================== -->
-    <section class="view-section" id="view-settings">
-      <div class="mcp-diagnostics-container">
-        <!-- MCP Server Diagnostics -->
-        <div class="panel-card">
-          <div class="card-title-row">
-            <h2>Streamable HTTP MCP Connection</h2>
-            <span class="mcp-live-indicator"><span class="live-dot"></span> Live /mcp</span>
-          </div>
-
-          <div class="status-stat-grid">
-            <div class="stat-metric-card">
-              <span class="stat-label">Transport</span>
-              <span class="stat-val" style="font-size: 1rem;">Streamable HTTP</span>
-            </div>
-            <div class="stat-metric-card">
-              <span class="stat-label">MCP SDK Version</span>
-              <span class="stat-val" style="font-size: 1rem;">2.2.0</span>
-            </div>
-            <div class="stat-metric-card">
-              <span class="stat-label">Tools Registered</span>
-              <span class="stat-val" id="statToolsCount">7 / 7</span>
-            </div>
-            <div class="stat-metric-card">
-              <span class="stat-label">Total MCP Invocations</span>
-              <span class="stat-val" id="statInvocationsCount">0</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-              Registered Streamable HTTP Tools:
-            </h4>
-            <div style="display: flex; flex-direction: column; gap: 0.4rem;" id="mcpToolsList">
-              <!-- Populated dynamically -->
-            </div>
+            <h1 class="page-title">System Status & Settings</h1>
+            <p class="page-description">Detailed health, connected MCP tools, neural model availability, and scenario controls</p>
           </div>
         </div>
 
-        <!-- Simulation State & Reset -->
-        <div class="panel-card">
-          <div class="card-title-row">
-            <h2>Simulation Controls & State Management</h2>
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <p style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.5;">
-              HomeOps-AI maintains an in-memory event log and SQLite audit store. You can switch between deterministic test scenarios or clear state at any time.
+        <div class="settings-grid">
+          <!-- MCP Server Status -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <h3 class="settings-card-title">Streamable HTTP MCP Server</h3>
+              <span class="badge-success">12 Tools Connected</span>
+            </div>
+            <p class="settings-card-desc">
+              HomeOps connects via official Model Context Protocol (MCP SDK 2.2.0) with real registered tools for sensor state, camera footage, risk evaluation, and incident recording.
             </p>
 
-            <div style="background: var(--bg-surface-warm); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-medium);">
-              <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Active Scenario:</div>
-              <div id="settingsActiveScenario" style="font-size: 0.95rem; font-weight: 600; color: var(--brand-teal);">security_incident</div>
-            </div>
-
-            <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-              <button class="primary-btn" id="reloadCurrentScenarioBtn">
-                Reload Scenario
-              </button>
-              <button class="secondary-btn" id="resetHomeStateBtn">
-                Reset to Clear Home
-              </button>
+            <div class="mcp-tools-grid" id="mcpToolsList">
+              <!-- Populated dynamically via JS -->
             </div>
           </div>
 
-          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); font-size: 0.78rem; color: var(--text-tertiary);">
-            <strong>Non-Negotiable Guarantee:</strong> MCP tool calls are dispatched through the official <code>mcp.client.streamable_http</code> client with real schema validation and structured JSON responses.
+          <!-- Camera Registry & Neural Model Status -->
+          <div class="settings-card">
+            <h3 class="settings-card-title">Camera Sources & AI Model</h3>
+            <div class="status-detail-list">
+              <div class="status-detail-row">
+                <span>Main Gate Camera</span>
+                <span class="badge-demo">SYNTHETIC DEMO</span>
+              </div>
+              <div class="status-detail-row">
+                <span>Back Patio Camera</span>
+                <span class="badge-demo">SYNTHETIC DEMO</span>
+              </div>
+              <div class="status-detail-row">
+                <span>Detached Garage Camera</span>
+                <span class="badge-offline">OFFLINE (Timeout 554)</span>
+              </div>
+              <div class="status-detail-row">
+                <span>AI Vision Model</span>
+                <span class="badge-success">ssdlite320_mobilenet_v3_large</span>
+              </div>
+            </div>
+            <div class="settings-note">
+              Demo clips are synthetic MP4 files generated for testing. No hardware camera access is claimed without physical verification.
+            </div>
+          </div>
+
+          <!-- Scenario Controls -->
+          <div class="settings-card">
+            <h3 class="settings-card-title">Simulator Scenarios</h3>
+            <p class="settings-card-desc">Switch simulated home telemetry to test different safety conditions:</p>
+            <div class="scenario-btn-group">
+              <button class="secondary-btn" id="reloadCurrentScenarioBtn">Reload Active Scenario</button>
+              <button class="secondary-btn" id="resetHomeStateBtn">Clear / Reset Home</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-  </main>
+    </main>
+  </div>
 
   <!-- ========================================================================
        MCP JSON Inspector Modal
        ======================================================================== -->
-  <div class="modal-overlay" id="jsonInspectorModal">
+  <div class="modal-overlay" id="jsonInspectorModal" style="display: none;">
     <div class="modal-window">
       <div class="modal-header">
         <h3 id="modalToolTitle">MCP Tool Invocation Details</h3>
-        <button class="secondary-btn" id="closeModalBtn" style="padding: 0.2rem 0.6rem; font-size: 1.1rem; border: none;">✕</button>
+        <button class="close-modal-btn" id="closeModalBtn">✕</button>
       </div>
       <div class="modal-body">
         <div>
-          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary);">Input Arguments (JSON):</span>
+          <span class="modal-field-label">Input Arguments (JSON):</span>
           <pre class="json-view-box" id="modalInputJson"></pre>
         </div>
         <div>
-          <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary);">Returned Result (JSON from MCP Server):</span>
+          <span class="modal-field-label">Returned Result (JSON from MCP Server):</span>
           <pre class="json-view-box" id="modalOutputJson"></pre>
         </div>
       </div>
@@ -621,6 +700,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=5.0"></script>
 </body>
 </html>

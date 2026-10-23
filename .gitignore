@@ -58,3 +58,16 @@ logs/
 *.db-shm
 *.db-wal
 *.sqlite3
+
+# Camera runtime generated snapshots
+app/web/static/snapshots/*.jpg
+app/web/static/snapshots/*.png
+!app/web/static/snapshots/.gitkeep
+
+# Model checkpoints / weights cache
+*.pt
+*.pth
+*.onnx
+weights/
+models/
+.cache/

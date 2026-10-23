@@ -483,3 +483,175 @@ def record_incident(
         "risk_level": assessment["risk_level"],
         "message": f"Incident {recorded_id} successfully recorded to audit history.",
     }
+
+
+# ---------------------------------------------------------------------------
+# Camera Tools (Phase 3)
+# ---------------------------------------------------------------------------
+
+def list_cameras_tool(
+    camera_svc: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Return safe metadata for all configured cameras."""
+    from app.cameras.service import camera_service as _default_camera_svc
+    svc = camera_svc or _default_camera_svc
+    cameras = svc.list_cameras()
+    return {"cameras": cameras, "count": len(cameras)}
+
+
+def get_camera_status_tool(
+    camera_id: str,
+    camera_svc: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Return verified operational status for a camera without leaking credentials."""
+    if not camera_id or not isinstance(camera_id, str) or not camera_id.strip():
+        return {"error": "camera_id is required and must be a non-empty string."}
+    from app.cameras.service import camera_service as _default_camera_svc
+    svc = camera_svc or _default_camera_svc
+    return svc.get_camera_status(camera_id.strip())
+
+
+def inspect_camera_tool(
+    camera_id: str,
+    camera_svc: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Inspect camera feed state, clip availability, and recent events."""
+    if not camera_id or not isinstance(camera_id, str) or not camera_id.strip():
+        return {"error": "camera_id is required and must be a non-empty string."}
+    from app.cameras.service import camera_service as _default_camera_svc
+    svc = camera_svc or _default_camera_svc
+    return svc.inspect_camera(camera_id.strip())
+
+
+def analyze_camera_footage_tool(
+    camera_id: str,
+    confidence_threshold: float = 0.40,
+    max_duration_sec: int = 60,
+    camera_svc: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Execute genuine video analysis on a camera's available footage."""
+    if not camera_id or not isinstance(camera_id, str) or not camera_id.strip():
+        return {"error": "camera_id is required and must be a non-empty string."}
+    
+    # Clamp confidence threshold to [0.1, 0.95]
+    safe_thresh = max(0.10, min(float(confidence_threshold), 0.95))
+    safe_duration = max(1, min(int(max_duration_sec), 300))
+    
+    from app.cameras.service import camera_service as _default_camera_svc
+    svc = camera_svc or _default_camera_svc
+    return svc.analyze_camera_footage(
+        camera_id=camera_id.strip(),
+        confidence_threshold=safe_thresh,
+        max_duration_sec=safe_duration,
+    )
+
+
+def get_camera_events_tool(
+    camera_id: str,
+    limit: int = 50,
+    camera_svc: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Retrieve persisted events for a specific camera from the home state log."""
+    if not camera_id or not isinstance(camera_id, str) or not camera_id.strip():
+        return {"error": "camera_id is required and must be a non-empty string."}
+    
+    safe_limit = max(1, min(int(limit), 200))
+    from app.cameras.service import camera_service as _default_camera_svc
+    svc = camera_svc or _default_camera_svc
+    events = svc.get_camera_events(camera_id.strip(), limit=safe_limit)
+    return {"camera_id": camera_id.strip(), "events": events, "count": len(events)}
+
+
+# ---------------------------------------------------------------------------
+# Integration & Hardware Discovery Tools
+# ---------------------------------------------------------------------------
+
+async def list_devices_tool(
+    source: Optional[str] = None,
+    *,
+    mgr: Optional[Any] = None,
+) -> dict[str, Any]:
+    """List discovered devices from Home Assistant, Cameras, and Simulator.
+
+    Parameters
+    ----------
+    source:
+        Optional provider filter: 'home_assistant', 'camera', or 'simulator'.
+    """
+    from app.integrations.manager import integration_manager as _default_mgr
+    manager = mgr or _default_mgr
+    clean_source = _safe_str(source)
+    devices = await manager.list_devices(source=clean_source)
+    return {
+        "devices": [d.to_dict() for d in devices],
+        "count": len(devices),
+        "source_filter": clean_source,
+    }
+
+
+async def get_device_state_tool(
+    device_id: str,
+    *,
+    mgr: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Retrieve current state, attributes, and provenance for a specific device."""
+    clean_id = _safe_str(device_id)
+    if not clean_id:
+        return {"error": "device_id is required."}
+
+    from app.integrations.manager import integration_manager as _default_mgr
+    manager = mgr or _default_mgr
+    device = await manager.get_device_state(clean_id)
+    if not device:
+        return {"error": f"Device '{clean_id}' not found.", "device_id": clean_id}
+
+    return {"device": device.to_dict()}
+
+
+async def get_integration_health_tool(
+    *,
+    mgr: Optional[Any] = None,
+) -> dict[str, Any]:
+    """Check health, connectivity, and hardware integration status across providers."""
+    from app.integrations.manager import integration_manager as _default_mgr
+    manager = mgr or _default_mgr
+    return await manager.get_all_health()
+
+
+def get_persisted_events_tool(
+    limit: int = 50,
+    device_id: Optional[str] = None,
+    source: Optional[str] = None,
+    *,
+    ctx: HomeStateService,
+) -> dict[str, Any]:
+    """Read recent persisted events filtered by device_id or provider source.
+
+    Distinguishes simulated from physical data without merging or confusion.
+    """
+    safe_lim = _safe_limit(limit, default=50)
+    clean_device = _safe_str(device_id)
+    clean_source = _safe_str(source)
+
+    events = ctx.get_all_events()
+    # Filter
+    if clean_device:
+        events = [e for e in events if e.device_id == clean_device]
+    if clean_source:
+        events = [
+            e for e in events
+            if e.metadata.get("source") == clean_source
+            or (clean_source == "simulator" and e.metadata.get("is_simulated") is True)
+        ]
+
+    events.sort(key=lambda e: e.timestamp, reverse=True)
+    selected = events[:safe_lim]
+
+    return {
+        "events": [e.model_dump(mode="json") for e in selected],
+        "count": len(selected),
+        "device_filter": clean_device,
+        "source_filter": clean_source,
+    }
+
+

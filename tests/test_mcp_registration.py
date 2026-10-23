@@ -22,7 +22,7 @@ from app.services.home_state import HomeStateService
 from app.services.incident_history import IncidentHistoryStore
 
 
-EXPECTED_TOOLS = {
+EXPECTED_LEGACY_TOOLS = {
     "get_home_state",
     "get_recent_events",
     "investigate_incident",
@@ -31,6 +31,23 @@ EXPECTED_TOOLS = {
     "execute_safe_action",
     "record_incident",
 }
+
+EXPECTED_CAMERA_TOOLS = {
+    "list_cameras",
+    "get_camera_status",
+    "inspect_camera",
+    "analyze_camera_footage",
+    "get_camera_events",
+}
+
+EXPECTED_INTEGRATION_TOOLS = {
+    "list_devices",
+    "get_device_state",
+    "get_integration_health",
+    "get_persisted_events",
+}
+
+EXPECTED_TOOLS = EXPECTED_LEGACY_TOOLS | EXPECTED_CAMERA_TOOLS | EXPECTED_INTEGRATION_TOOLS
 
 
 @pytest.fixture()
@@ -54,14 +71,17 @@ def server(isolated_ctx: AppContext):
 
 
 class TestToolRegistration:
-    def test_exactly_seven_tools_registered(self, server):
+    def test_all_tools_registered(self, server):
         tools = server._tool_manager.list_tools()
-        assert len(tools) == 7
+        assert len(tools) == len(EXPECTED_TOOLS)
 
     def test_all_expected_tool_names_present(self, server):
         tools = server._tool_manager.list_tools()
         registered = {t.name for t in tools}
         assert registered == EXPECTED_TOOLS
+        assert EXPECTED_LEGACY_TOOLS.issubset(registered)
+        assert EXPECTED_CAMERA_TOOLS.issubset(registered)
+        assert EXPECTED_INTEGRATION_TOOLS.issubset(registered)
 
     def test_get_home_state_registered(self, server):
         tools = server._tool_manager.list_tools()
@@ -142,9 +162,9 @@ class TestServerCreation:
         )
         s1 = create_server(context=ctx1)
         s2 = create_server(context=ctx2)
-        # Both have 7 tools
-        assert len(s1._tool_manager.list_tools()) == 7
-        assert len(s2._tool_manager.list_tools()) == 7
+        # Both have all tools registered
+        assert len(s1._tool_manager.list_tools()) == len(EXPECTED_TOOLS)
+        assert len(s2._tool_manager.list_tools()) == len(EXPECTED_TOOLS)
         # They are different instances
         assert s1 is not s2
 
@@ -152,7 +172,7 @@ class TestServerCreation:
         """Server can be created without supplying a context (uses singletons)."""
         s = create_server()
         tools = s._tool_manager.list_tools()
-        assert len(tools) == 7
+        assert len(tools) == len(EXPECTED_TOOLS)
 
 
 # ---------------------------------------------------------------------------

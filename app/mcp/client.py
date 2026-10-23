@@ -341,3 +341,73 @@ class HomeOpsMCPClient:
         """Query incident history store for audit records."""
         # Queries the incident history service directly from context
         return self._context.history.get_incident_history(limit=limit)
+
+    async def list_cameras(self) -> dict[str, Any]:
+        """Query list_cameras via MCP."""
+        return await self.call_tool("list_cameras", {})
+
+    async def get_camera_status(self, camera_id: str) -> dict[str, Any]:
+        """Query get_camera_status via MCP."""
+        return await self.call_tool("get_camera_status", {"camera_id": camera_id})
+
+    async def inspect_camera(self, camera_id: str) -> dict[str, Any]:
+        """Query inspect_camera via MCP."""
+        return await self.call_tool("inspect_camera", {"camera_id": camera_id})
+
+    async def analyze_camera_footage(
+        self,
+        camera_id: str,
+        confidence_threshold: float = 0.40,
+        max_duration_sec: int = 60,
+    ) -> dict[str, Any]:
+        """Trigger genuine video analysis on a camera's footage via MCP."""
+        return await self.call_tool(
+            "analyze_camera_footage",
+            {
+                "camera_id": camera_id,
+                "confidence_threshold": confidence_threshold,
+                "max_duration_sec": max_duration_sec,
+            },
+        )
+
+    async def get_camera_events(
+        self,
+        camera_id: str,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Retrieve persisted events for a camera via MCP."""
+        return await self.call_tool(
+            "get_camera_events",
+            {"camera_id": camera_id, "limit": limit},
+        )
+
+    async def list_devices(self, source: Optional[str] = None) -> dict[str, Any]:
+        """List devices discovered from integrations via MCP."""
+        args: dict[str, Any] = {}
+        if source:
+            args["source"] = source
+        return await self.call_tool("list_devices", args)
+
+    async def get_device_state(self, device_id: str) -> dict[str, Any]:
+        """Retrieve state for a specific device via MCP."""
+        return await self.call_tool("get_device_state", {"device_id": device_id})
+
+    async def get_integration_health(self) -> dict[str, Any]:
+        """Retrieve integration health across providers via MCP."""
+        return await self.call_tool("get_integration_health", {})
+
+    async def get_persisted_events(
+        self,
+        limit: int = 50,
+        device_id: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Query persisted events with source/device filtering via MCP."""
+        args: dict[str, Any] = {"limit": limit}
+        if device_id:
+            args["device_id"] = device_id
+        if source:
+            args["source"] = source
+        return await self.call_tool("get_persisted_events", args)
+
+

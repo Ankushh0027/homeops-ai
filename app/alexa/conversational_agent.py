@@ -21,6 +21,7 @@ import logging
 import re
 from typing import Any, Optional
 
+from app.alexa.conversational_synthesizer import ConversationalSynthesizer, LanguageDetector
 from app.alexa.models import AlexaIntent, AlexaRequest, AlexaResponse
 from app.mcp.client import HomeOpsMCPClient
 
@@ -66,6 +67,7 @@ class ConversationalAgent:
         """
         session = self._session_cache.setdefault(session_id, {})
         u = utterance.strip().lower()
+        lang = LanguageDetector.detect(utterance)
 
         # Track turn-specific MCP tool calls
         turn_tool_calls: list[dict[str, Any]] = []
@@ -103,28 +105,32 @@ class ConversationalAgent:
         recent_events_payload = await _call_and_record("get_recent_events", {"limit": 50})
         events = recent_events_payload.get("events", [])
 
-        # Determine user intent and focus
+        # Determine user intent and focus (supporting English, Hindi, and Hinglish)
         is_action_request = any(k in u for k in [
-            "turn off", "turn on", "lock", "unlock", "shut off", "arm", "disarm", "close", "execute"
+            "turn off", "turn on", "lock", "unlock", "shut off", "arm", "disarm", "close", "execute",
+            "band kar", "band karo", "lock kar", "lock karo", "chalu kar", "rok do", "रोको", "बंद करो", "लॉक करो"
         ])
         is_history_request = any(k in u for k in [
-            "happened before", "history", "previous", "past incident", "audit"
+            "happened before", "history", "previous", "past incident", "audit",
+            "pehle kabhi", "pehle hua", "itihas", "pichla", "पहले कभी", "पिछली घटना"
         ])
         is_risk_focused = any(k in u for k in [
-            "worried", "worry", "serious", "danger", "dangerous", "risk", "severity", "safe"
+            "worried", "worry", "serious", "danger", "dangerous", "risk", "severity", "safe",
+            "khatra", "chinta", "khatarnak", "surakshit", "safe hai", "खतरा", "चिंता", "सुरक्षित"
         ])
         is_recommend_focused = any(k in u for k in [
-            "what should i do", "recommend", "how should i respond", "what do you recommend", "next step"
+            "what should i do", "recommend", "how should i respond", "what do you recommend", "next step",
+            "kya karun", "kya karein", "kya karna chahiye", "salah", "step", "क्या करूं", "क्या करें"
         ])
 
-        # Detect topic clues
+        # Detect topic clues (supporting English, Hindi, and Hinglish)
         target_scenario = scenario_hint
         if not target_scenario:
-            if "back door" in u or "door" in u or "intrusion" in u or "break in" in u or "security" in u:
+            if any(k in u for k in ["back door", "door", "intrusion", "break in", "security", "darwaza", "movement", "halchal", "chori", "दरवाजा", "हलचल"]):
                 target_scenario = "security_incident"
-            elif "water" in u or "leak" in u or "flood" in u or "moisture" in u or "washer" in u or "laundry" in u:
+            elif any(k in u for k in ["water", "leak", "flood", "moisture", "washer", "laundry", "pani", "paani", "पानी", "रिसाव"]):
                 target_scenario = "water_hazard"
-            elif "leaving" in u or "away" in u or "depart" in u or "vacation" in u or "left open" in u:
+            elif any(k in u for k in ["leaving", "away", "depart", "vacation", "left open", "bahar ja", "office ja", "khula", "बाहर"]):
                 target_scenario = "leaving_home"
 
         # 3. Handle Action Request (Strict Safety Policy Preservation)
@@ -138,11 +144,7 @@ class ConversationalAgent:
             })
 
             clean_action = action_name.replace("_", " ")
-            speech = (
-                f"I cannot execute '{clean_action}' autonomously. "
-                "HomeOps safety policy strictly blocks autonomous physical device actions to prevent unintended hazards. "
-                "Please confirm and execute this action manually in your connected home app."
-            )
+            speech = ConversationalSynthesizer.synthesize_blocked_action(action_name=action_name, lang=lang)
 
             return {
                 "speech": speech,
@@ -167,36 +169,230 @@ class ConversationalAgent:
                 },
                 "tool_calls": turn_tool_calls,
                 "home_state": home_state,
+                "language": lang,
                 "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
             }
 
         # 4. Handle History Request
         if is_history_request:
             history_records = await self.mcp_client.get_incident_history(limit=10)
-            rec_count = len(history_records)
-            if rec_count > 0:
-                most_recent = history_records[0]
-                speech = (
-                    f"I checked your home incident history. There are {rec_count} recorded incident(s). "
-                    f"The most recent was a {most_recent.get('severity', 'UNKNOWN')} severity incident: "
-                    f"'{most_recent.get('title', 'Incident')}', recorded on {most_recent.get('created_at', 'recently')[:10]}."
-                )
-            else:
-                speech = "I checked the incident audit store. No prior incidents have been logged yet."
+            speech = ConversationalSynthesizer.synthesize_history_response(records=history_records, lang=lang)
 
             return {
                 "speech": speech,
                 "intent": AlexaIntent.INCIDENT_HISTORY.value,
                 "history": history_records,
+                "language": lang,
                 "tool_calls": turn_tool_calls,
                 "home_state": home_state,
+                "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
+            }
+
+        # 4.4. Handle Integration Health / Hardware Connectivity Request
+        is_integration_request = any(k in u for k in [
+            "home assistant", "integration", "integrations", "hardware", "hub",
+            "physical device", "physical devices", "is home assistant connected",
+            "are devices connected", "connected to home assistant",
+        ])
+        if is_integration_request:
+            health_res = await _call_and_record("get_integration_health", {})
+            ha_info = health_res.get("providers", {}).get("home_assistant", {})
+            ha_status = ha_info.get("status", "UNCONFIGURED")
+            has_physical = health_res.get("has_physical_connected", False)
+
+            if ha_status == "CONNECTED":
+                speech = (
+                    "Home Assistant is connected and online. Physical devices and sensor telemetry "
+                    "are actively synchronized."
+                )
+            elif ha_status == "AUTH_ERROR":
+                speech = (
+                    "Home Assistant is reachable, but authentication failed. Please verify your "
+                    "HOME_ASSISTANT_TOKEN long-lived access token."
+                )
+            elif ha_status == "UNREACHABLE":
+                speech = (
+                    f"Home Assistant is configured at {ha_info.get('metadata', {}).get('url', 'URL')} "
+                    f"but is currently unreachable over the network."
+                )
+            else:
+                speech = (
+                    "Home Assistant integration is currently unconfigured. No physical smart-home "
+                    "hub or physical sensors are connected yet. The active sensors you see are "
+                    "simulated fixtures for testing and evaluation."
+                )
+
+            return {
+                "speech": speech,
+                "intent": AlexaIntent.INTEGRATION_QUERY.value,
+                "integration_health": health_res,
+                "has_physical_connected": has_physical,
+                "tool_calls": turn_tool_calls,
+                "home_state": home_state,
+                "language": lang,
+                "disclaimer": "Physical integrations unconfigured • Simulated fixtures active",
+            }
+
+        # 4.5. Handle Camera Request
+        is_camera_request = any(k in u for k in [
+            "camera", "cameras", "cam", "footage", "video", "cctv",
+            "person detection", "person detections", "detections recorded",
+        ]) or ("recorded" in u and any(c in u for c in ["gate", "patio", "garage", "door"]))
+
+        # 4.6. Handle Device List Request
+        is_device_list_request = any(k in u for k in [
+            "list devices", "list my devices", "my devices", "devices", "all devices",
+            "what devices", "show devices", "device list", "connected devices",
+            "mere devices", "kaunse devices",
+        ])
+        if is_device_list_request and not is_camera_request:
+            dev_res = await _call_and_record("list_devices", {})
+            devices = dev_res.get("devices", [])
+            connected_physical = [
+                d for d in devices
+                if not d.get("is_simulated") and d.get("status") in {"ACTIVE", "CONNECTED"}
+            ]
+            offline_physical = [
+                d for d in devices
+                if not d.get("is_simulated") and d.get("status") == "OFFLINE"
+            ]
+            simulated_devs = [d for d in devices if d.get("is_simulated")]
+
+            if connected_physical:
+                phys_names = ", ".join(d.get("name") for d in connected_physical)
+                speech = f"You have {len(connected_physical)} physical device(s) connected: {phys_names}."
+                if simulated_devs:
+                    speech += f" There are also {len(simulated_devs)} simulated test fixture(s) registered."
+            else:
+                sim_names = ", ".join(d.get("name") for d in simulated_devs[:4])
+                offline_msg = f" ({len(offline_physical)} physical device is registered but OFFLINE: {offline_physical[0].get('name')})" if offline_physical else ""
+                speech = (
+                    f"No physical devices are currently connected (Home Assistant is not connected){offline_msg}. "
+                    f"You have {len(simulated_devs)} simulated test fixture(s) active: {sim_names}."
+                )
+
+            return {
+                "speech": speech,
+                "intent": AlexaIntent.DEVICE_QUERY.value,
+                "devices": devices,
+                "tool_calls": turn_tool_calls,
+                "home_state": home_state,
+                "language": lang,
+                "disclaimer": "Simulated home devices • Physical integration unconfigured",
+            }
+
+        if is_camera_request:
+            camera_id = self._extract_camera_id(u)
+            cam_display_map = {
+                "cam-main-gate": "Main Gate Camera",
+                "cam-back-patio": "Back Patio Camera",
+                "cam-garage": "Garage Camera",
+            }
+            cam_display = cam_display_map.get(camera_id, camera_id)
+
+            is_list_request = any(k in u for k in ["list", "all", "what cameras", "show cameras", "how many"])
+            is_events_request = any(k in u for k in [
+                "recorded", "history", "events", "were recorded", "past detections",
+                "logged detections", "activity", "what person detection", "what detection",
+            ])
+            is_analyze_request = any(k in u for k in [
+                "analyze", "scan", "run detection", "process footage", "inspect footage", "check footage",
+            ])
+
+            if is_list_request:
+                cam_list_res = await _call_and_record("list_cameras", {})
+                cams = cam_list_res.get("cameras", [])
+                cam_names = [f"{c.get('name', c.get('camera_id'))} ({c.get('status')})" for c in cams]
+                speech = f"You have {len(cams)} configured camera(s): " + ", ".join(cam_names) + "."
+                return {
+                    "speech": speech,
+                    "intent": AlexaIntent.CAMERA_QUERY.value,
+                    "cameras": cams,
+                    "tool_calls": turn_tool_calls,
+                    "home_state": home_state,
+                    "language": lang,
+                    "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
+                }
+
+            if is_events_request:
+                events_res = await _call_and_record("get_camera_events", {"camera_id": camera_id})
+                cam_events = events_res.get("events", [])
+                count = len(cam_events)
+                if count > 0:
+                    latest = cam_events[0]
+                    conf_text = f" with {round(latest.get('confidence', 0.8) * 100, 1)}% confidence" if latest.get("confidence") else ""
+                    speech = f"I found {count} recorded detection event(s) for {cam_display} ('{camera_id}'). The most recent was a person detection{conf_text}."
+                else:
+                    speech = f"No person detection events have been recorded for {cam_display} ('{camera_id}') yet."
+
+                return {
+                    "speech": speech,
+                    "intent": AlexaIntent.CAMERA_QUERY.value,
+                    "camera_events": cam_events,
+                    "tool_calls": turn_tool_calls,
+                    "home_state": home_state,
+                    "language": lang,
+                    "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
+                }
+
+            if is_analyze_request:
+                analysis_res = await _call_and_record("analyze_camera_footage", {"camera_id": camera_id})
+                status = analysis_res.get("analysis_status")
+                conf = analysis_res.get("model_confidence")
+                if status == "PERSON_DETECTED":
+                    conf_pct = round(conf * 100, 1) if conf is not None else 85.0
+                    speech = (
+                        f"Video analysis completed for {cam_display} ('{camera_id}'). A person was detected with {conf_pct}% model confidence. "
+                        f"Reviewable snapshot and telemetry event have been recorded."
+                    )
+                elif status == "NO_PERSON_DETECTED":
+                    speech = f"Video analysis completed for {cam_display} ('{camera_id}'). No person was detected in the available footage."
+                elif status == "MODEL_UNAVAILABLE":
+                    speech = (
+                        f"Video analysis could not run because the neural network model weights are unavailable. "
+                        "No heuristic or fake detections were substituted."
+                    )
+                else:
+                    err_detail = analysis_res.get("error") or analysis_res.get("details") or "Camera is offline or footage is missing."
+                    speech = f"Video analysis could not be performed for {cam_display} ('{camera_id}'): {err_detail}"
+
+                return {
+                    "speech": speech,
+                    "intent": AlexaIntent.CAMERA_QUERY.value,
+                    "camera_analysis": analysis_res,
+                    "tool_calls": turn_tool_calls,
+                    "home_state": home_state,
+                    "language": lang,
+                    "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
+                }
+
+            # Default: Inspect Camera
+            inspect_res = await _call_and_record("inspect_camera", {"camera_id": camera_id})
+            status = inspect_res.get("status", "UNKNOWN")
+            loc = inspect_res.get("location", "home")
+            has_clip = inspect_res.get("clip_available", False)
+            clip_msg = "Footage is available for analysis." if has_clip else "No footage is currently available."
+            if status == "OFFLINE":
+                speech = f"{cam_display} ('{camera_id}') located at {loc} is currently OFFLINE. Verification probe failed or device is disconnected."
+            else:
+                speech = f"{cam_display} ('{camera_id}') is located at {loc} with status {status}. {clip_msg}"
+
+            return {
+                "speech": speech,
+                "intent": AlexaIntent.CAMERA_QUERY.value,
+                "camera_inspection": inspect_res,
+                "tool_calls": turn_tool_calls,
+                "home_state": home_state,
+                "language": lang,
                 "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
             }
 
         # 5. Incident Investigation / Risk Assessment / Home Status
         # Call real investigate_incident tool
         inv_args: dict[str, Any] = {}
-        if target_scenario:
+        if scenario_hint:
+            inv_args["scenario"] = scenario_hint
+        elif not events and target_scenario:
             inv_args["scenario"] = target_scenario
 
         inv_result = await _call_and_record("investigate_incident", inv_args)
@@ -245,15 +441,22 @@ class ConversationalAgent:
                 logger.warning("Could not auto-record incident to history: %s", exc)
 
         # 6. Synthesize Calm, Natural Alexa+-Inspired Speech Response
-        speech = self._synthesize_conversational_response(
-            utterance=u,
-            incident=primary_incident,
-            risk=risk_result,
-            recommendation=rec_result,
-            home_state=home_state,
-            is_risk_focused=is_risk_focused,
-            is_recommend_focused=is_recommend_focused,
-        )
+        if primary_incident:
+            speech = ConversationalSynthesizer.synthesize_incident_response(
+                utterance=u,
+                incident=primary_incident,
+                risk=risk_result,
+                recommendation=rec_result,
+                lang=lang,
+                is_risk_focused=is_risk_focused,
+                is_recommend_focused=is_recommend_focused,
+            )
+        else:
+            speech = ConversationalSynthesizer.synthesize_quiet_home(
+                device_count=len(home_state.get("devices", [])),
+                active_conditions=home_state.get("active_conditions", []),
+                lang=lang,
+            )
 
         # 7. Formulate Event Timeline (mark correlated events)
         timeline: list[dict[str, Any]] = []
@@ -298,6 +501,7 @@ class ConversationalAgent:
             "timeline": timeline,
             "recommendation": rec_result,
             "safety_block": safety_block,
+            "language": lang,
             "tool_calls": turn_tool_calls,
             "home_state": home_state,
             "disclaimer": "Simulated home events • Real Deterministic Safety Policy & Streamable HTTP MCP",
@@ -394,15 +598,15 @@ class ConversationalAgent:
     @staticmethod
     def _extract_action_name(utterance: str) -> str:
         u = utterance.lower()
-        if "washer" in u or "appliance" in u or "washing machine" in u:
+        if any(k in u for k in ["washer", "appliance", "washing machine", "machine"]):
             return "turn_off_configured_appliance"
-        if "arm" in u or "security" in u:
+        if any(k in u for k in ["arm", "security"]):
             return "arm_security_system"
-        if "lock" in u or "door" in u:
+        if any(k in u for k in ["lock", "door", "darwaza", "दरवाजा", "कपाट"]):
             return "lock_door"
-        if "shut off" in u or "water" in u or "valve" in u:
+        if any(k in u for k in ["shut off", "water", "valve", "pani", "paani", "पानी", "नल"]):
             return "shut_off_water_main"
-        if "light" in u:
+        if any(k in u for k in ["light", "batti", "बत्ती", "लाइट"]):
             return "turn_off_lights"
         return "unspecified_physical_action"
 
@@ -417,3 +621,13 @@ class ConversationalAgent:
             if dev_id in u or loc in u or dev_type in u:
                 return dev.get("device_id")
         return None
+
+    @staticmethod
+    def _extract_camera_id(utterance: str) -> str:
+        u = utterance.lower()
+        if any(k in u for k in ["back patio", "back door", "patio", "back cam", "cam-02", "back"]):
+            return "cam-back-patio"
+        if any(k in u for k in ["garage", "cam-03"]):
+            return "cam-garage"
+        return "cam-main-gate"
+

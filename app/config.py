@@ -57,16 +57,37 @@ class Settings:
     )
 
     # ------------------------------------------------------------------ #
-    # Future integrations (NOT implemented in MVP)                        #
+    # Future integrations & Hardware Providers                            #
     # ------------------------------------------------------------------ #
-    # MCP_ENDPOINT – set in environment only, never here.
-    # BEDROCK_REGION – set in environment only, never here.
-    # ALEXA_SKILL_ID – set in environment only, never here.
+    HOME_ASSISTANT_URL: Optional[str] = os.getenv("HOME_ASSISTANT_URL")
+    HOME_ASSISTANT_TOKEN: Optional[str] = os.getenv("HOME_ASSISTANT_TOKEN")
+    HOME_ASSISTANT_TIMEOUT_SECONDS: float = float(
+        os.getenv("HOME_ASSISTANT_TIMEOUT_SECONDS", "5.0")
+    )
+
+    # Simulator controls
+    SIMULATOR_ENABLED: bool = (
+        os.getenv(
+            "SIMULATOR_ENABLED",
+            "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
+        ).lower()
+        == "true"
+    )
+    SIMULATOR_ALLOW_SCENARIOS: bool = (
+        os.getenv(
+            "SIMULATOR_ALLOW_SCENARIOS",
+            "false" if os.getenv("ENVIRONMENT", "development").lower() == "production" else "true",
+        ).lower()
+        == "true"
+    )
 
     def __repr__(self) -> str:  # pragma: no cover
+        ha_configured = bool(self.HOME_ASSISTANT_URL and self.HOME_ASSISTANT_TOKEN)
         return (
             f"Settings(env={self.ENVIRONMENT!r}, "
             f"log_level={self.LOG_LEVEL!r}, "
+            f"ha_configured={ha_configured}, "
+            f"simulator_enabled={self.SIMULATOR_ENABLED}, "
             f"correlation_window={self.INCIDENT_CORRELATION_WINDOW_SECONDS}s)"
         )
 

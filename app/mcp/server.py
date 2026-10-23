@@ -39,11 +39,20 @@ from mcp.server import MCPServer
 
 from app.mcp.context import AppContext, app_context as _default_context
 from app.mcp.tools import (
+    analyze_camera_footage_tool,
     assess_risk,
     execute_safe_action_tool,
+    get_camera_events_tool,
+    get_camera_status_tool,
+    get_device_state_tool,
     get_home_state,
+    get_integration_health_tool,
+    get_persisted_events_tool,
     get_recent_events,
+    inspect_camera_tool,
     investigate_incident,
+    list_cameras_tool,
+    list_devices_tool,
     record_incident,
     recommend_response,
 )
@@ -260,6 +269,157 @@ def create_server(context: Optional[AppContext] = None) -> MCPServer:
             evidence=evidence,
             recommended_next_step=recommended_next_step,
             ctx_history=ctx.history,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Tool 8: list_cameras                                                #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="list_cameras",
+        description=(
+            "List all configured cameras in the smart home. "
+            "Returns safe metadata including camera ID, name, location, and verified status. "
+            "Never exposes camera credentials or private stream URLs."
+        ),
+    )
+    def _list_cameras() -> dict[str, Any]:
+        return list_cameras_tool(camera_svc=ctx.camera_service)
+
+    # ------------------------------------------------------------------ #
+    # Tool 9: get_camera_status                                           #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="get_camera_status",
+        description=(
+            "Retrieve verified operational status for a specific camera ID. "
+            "Status values: DEMO, CONNECTED, OFFLINE, or ERROR. "
+            "Never claims connection without genuine verification."
+        ),
+    )
+    def _get_camera_status(camera_id: str) -> dict[str, Any]:
+        return get_camera_status_tool(camera_id=camera_id, camera_svc=ctx.camera_service)
+
+    # ------------------------------------------------------------------ #
+    # Tool 10: inspect_camera                                             #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="inspect_camera",
+        description=(
+            "Inspect a camera's location, footage availability, and recent events. "
+            "Handles offline or missing cameras with explicit diagnostic errors."
+        ),
+    )
+    def _inspect_camera(camera_id: str) -> dict[str, Any]:
+        return inspect_camera_tool(camera_id=camera_id, camera_svc=ctx.camera_service)
+
+    # ------------------------------------------------------------------ #
+    # Tool 11: analyze_camera_footage                                     #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="analyze_camera_footage",
+        description=(
+            "Run real video object-detection inference on available camera footage. "
+            "Decodes frames and detects person class using Torchvision neural network. "
+            "Persists genuine detection evidence to the home state log. "
+            "Never fabricates confidence or bounding box data."
+        ),
+    )
+    def _analyze_camera_footage(
+        camera_id: str,
+        confidence_threshold: float = 0.40,
+        max_duration_sec: int = 60,
+    ) -> dict[str, Any]:
+        return analyze_camera_footage_tool(
+            camera_id=camera_id,
+            confidence_threshold=confidence_threshold,
+            max_duration_sec=max_duration_sec,
+            camera_svc=ctx.camera_service,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Tool 12: get_camera_events                                          #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="get_camera_events",
+        description=(
+            "Retrieve persisted sensor and detection events for a specific camera ID. "
+            "Reads genuine persisted records from the home event log."
+        ),
+    )
+    def _get_camera_events(camera_id: str, limit: int = 50) -> dict[str, Any]:
+        return get_camera_events_tool(
+            camera_id=camera_id,
+            limit=limit,
+            camera_svc=ctx.camera_service,
+        )
+
+    # ------------------------------------------------------------------ #
+    # Tool 13: list_devices                                               #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="list_devices",
+        description=(
+            "List smart-home devices discovered from Home Assistant, camera sources, "
+            "and simulator fixtures. Distinguishes physical from simulated devices."
+        ),
+    )
+    async def _list_devices(source: Optional[str] = None) -> dict[str, Any]:
+        return await list_devices_tool(source=source, mgr=ctx.integration_manager)
+
+    # ------------------------------------------------------------------ #
+    # Tool 14: get_device_state                                           #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="get_device_state",
+        description=(
+            "Retrieve current telemetry state, attributes, and origin provider for a device ID."
+        ),
+    )
+    async def _get_device_state(device_id: str) -> dict[str, Any]:
+        return await get_device_state_tool(device_id=device_id, mgr=ctx.integration_manager)
+
+    # ------------------------------------------------------------------ #
+    # Tool 15: get_integration_health                                     #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="get_integration_health",
+        description=(
+            "Check integration health and connection status for Home Assistant, Cameras, "
+            "and Simulator. Reports truthfully whether physical devices are connected."
+        ),
+    )
+    async def _get_integration_health() -> dict[str, Any]:
+        return await get_integration_health_tool(mgr=ctx.integration_manager)
+
+    # ------------------------------------------------------------------ #
+    # Tool 16: get_persisted_events                                       #
+    # ------------------------------------------------------------------ #
+
+    @server.tool(
+        name="get_persisted_events",
+        description=(
+            "Read recent persisted home events with optional filtering by device_id or source "
+            "('home_assistant', 'camera', 'simulator')."
+        ),
+    )
+    def _get_persisted_events(
+        limit: int = 50,
+        device_id: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return get_persisted_events_tool(
+            limit=limit,
+            device_id=device_id,
+            source=source,
+            ctx=ctx.home_state,
         )
 
     tool_count = len(server._tool_manager.list_tools())

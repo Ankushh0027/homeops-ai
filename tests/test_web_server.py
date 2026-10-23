@@ -35,7 +35,7 @@ async def test_web_mcp_status_endpoint(test_app):
             assert res.status_code == 200
             data = res.json()
             assert data["mcp_server"]["status"] == "online"
-            assert data["mcp_server"]["tools_registered"] == 7
+            assert data["mcp_server"]["tools_registered"] == 16
             assert data["safety_policy"]["autonomous_physical_action"] == "BLOCKED_BY_DEFAULT"
 
 
