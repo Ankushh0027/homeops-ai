@@ -353,8 +353,14 @@ class HomeAssistantProvider(IntegrationProvider):
             if device_class == "lock":
                 return "lock_sensor"
             return "motion_sensor" if "motion" in device_class else "door_sensor"
+        elif domain == "sensor":
+            if any(k in device_class for k in ["water", "tank", "volume", "distance"]):
+                return "water_tank_sensor"
+            return None
         elif domain == "lock":
             return "lock_sensor"
+        elif domain in {"light", "switch"}:
+            return domain
         elif domain == "camera":
             return "camera"
         return None
@@ -367,6 +373,12 @@ class HomeAssistantProvider(IntegrationProvider):
 
         if device_type in {"door_sensor", "window_sensor"}:
             return "opened" if s in {"on", "open", "opened", "true"} else "closed"
+        elif device_type == "lock_sensor":
+            return "unlocked" if s in {"unlocked", "open"} else "locked"
+        elif device_type in {"light", "switch"}:
+            return "on" if s in {"on", "true"} else "off"
+        elif device_type == "water_tank_sensor":
+            return "level_update"
         elif device_type == "motion_sensor":
             return "detected" if s in {"on", "motion", "detected", "true"} else "cleared"
         elif device_type == "water_sensor":

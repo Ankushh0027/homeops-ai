@@ -109,6 +109,28 @@ class SimulatedDeviceProvider(IntegrationProvider):
                 status="OFFLINE",
                 attributes={"protocol": "simulated", "offline_reason": "RF signal out of range"},
             ),
+            "sim-lock-front": DeviceMetadata(
+                device_id="sim-lock-front",
+                name="Front Door Smart Lock (Simulated)",
+                device_type="lock_sensor",
+                location="front_door",
+                provider_id=self.provider_id,
+                is_simulated=True,
+                state="locked",
+                status="ACTIVE",
+                attributes={"protocol": "simulated", "battery": 91, "locked": True},
+            ),
+            "sim-tank-water": DeviceMetadata(
+                device_id="sim-tank-water",
+                name="Overhead Water Tank Level (Simulated)",
+                device_type="water_tank_sensor",
+                location="utility_roof",
+                provider_id=self.provider_id,
+                is_simulated=True,
+                state="82%",
+                status="ACTIVE",
+                attributes={"protocol": "simulated", "level_pct": 82, "capacity_liters": 1000},
+            ),
             "sim-cam-gate": DeviceMetadata(
                 device_id="sim-cam-gate",
                 name="Main Gate Demo Camera",
@@ -233,6 +255,10 @@ class SimulatedDeviceProvider(IntegrationProvider):
                     dev.state = "moisture_cleared"
                 elif dev.device_type == "smoke_sensor":
                     dev.state = "smoke_cleared"
+                elif dev.device_type == "lock_sensor":
+                    dev.state = "locked"
+                elif dev.device_type == "water_tank_sensor":
+                    dev.state = "82%"
             new_events = []
         else:
             raise ValueError(f"Unknown scenario '{scenario_name}'. Available: security_incident, water_hazard, smoke_alert, leaving_home, clear.")

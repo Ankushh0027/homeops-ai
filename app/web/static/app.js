@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeTab: 'home',
     currentScenario: 'security_incident',
     cameras: [],
+    devices: [],
     selectedCameraId: 'cam-main-gate',
     isAnalyzing: false,
     isChatProcessing: false,
@@ -44,6 +45,61 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  // -------------------------------------------------------------------------
+  // Reusable Normalized Device Helpers
+  // -------------------------------------------------------------------------
+  function getDeviceIcon(type) {
+    switch (type) {
+      case 'lock_sensor':
+      case 'lock':
+        return '🔒';
+      case 'contact_sensor':
+        return '🚪';
+      case 'motion_sensor':
+        return '🚶';
+      case 'water_leak_sensor':
+        return '💧';
+      case 'water_tank_sensor':
+        return '🚰';
+      case 'smoke_sensor':
+        return '💨';
+      case 'camera':
+        return '📹';
+      case 'light':
+        return '💡';
+      case 'switch':
+        return '🔌';
+      default:
+        return '⚡';
+    }
+  }
+
+  function getDeviceCategory(type) {
+    if (type === 'lock_sensor' || type === 'lock') return 'lock';
+    if (type === 'contact_sensor') return 'contact';
+    if (type === 'motion_sensor') return 'motion';
+    if (type === 'water_leak_sensor' || type === 'water_tank_sensor') return 'water';
+    if (type === 'smoke_sensor' || type === 'co_sensor' || type === 'thermostat') return 'environmental';
+    if (type === 'camera') return 'camera';
+    return 'other';
+  }
+
+  function formatDeviceState(dev) {
+    const s = String(dev.state || dev.status || 'unknown');
+    return s.toUpperCase().replace(/_/g, ' ');
+  }
+
+  function getStateTagClass(dev) {
+    const s = String(dev.state || '').toLowerCase();
+    if (s === 'locked' || s === 'closed' || s === 'clear' || s === 'dry' || s === 'online' || s.includes('%')) {
+      return 'state-ok';
+    }
+    if (s === 'open' || s === 'leak_detected' || s === 'motion_detected' || s === 'unlocked' || s === 'offline') {
+      return 'state-alert';
+    }
+    return 'state-neutral';
   }
 
   // -------------------------------------------------------------------------
@@ -70,7 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Tab-specific initializations
-    if (targetTabId === 'cameras') {
+    if (targetTabId === 'home') {
+      loadHomeSummary();
+    } else if (targetTabId === 'devices') {
+      loadDevices(options.filter || 'all');
+    } else if (targetTabId === 'cameras') {
       loadCamerasRegistry();
     } else if (targetTabId === 'viewer') {
       if (options.cameraId) {
@@ -79,8 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (select) select.value = options.cameraId;
       }
       loadSelectedCameraViewer(state.selectedCameraId);
-    } else if (targetTabId === 'home') {
-      loadHomeSummary();
     } else if (targetTabId === 'settings') {
       loadSystemStatus();
     }
@@ -100,6 +158,12 @@ document.addEventListener('DOMContentLoaded', () => {
     viewerBreadcrumbBack.addEventListener('click', () => switchTab('cameras'));
   }
 
+  // Home Screen: "View All Devices"
+  const homeViewAllDevicesBtn = document.getElementById('homeViewAllDevicesBtn');
+  if (homeViewAllDevicesBtn) {
+    homeViewAllDevicesBtn.addEventListener('click', () => switchTab('devices'));
+  }
+
   // Home Screen: "View All Cameras"
   const homeViewAllCamerasBtn = document.getElementById('homeViewAllCamerasBtn');
   if (homeViewAllCamerasBtn) {
@@ -112,19 +176,60 @@ document.addEventListener('DOMContentLoaded', () => {
     homeRefreshEventsBtn.addEventListener('click', () => loadHomeSummary());
   }
 
+  // Home Screen: Active Alert Investigate Button
+  const homeAlertInvestigateBtn = document.getElementById('homeAlertInvestigateBtn');
+  if (homeAlertInvestigateBtn) {
+    homeAlertInvestigateBtn.addEventListener('click', () => switchTab('investigation'));
+  }
+
   // -------------------------------------------------------------------------
   // Screen 1: Home Dashboard Logic
   // -------------------------------------------------------------------------
+  function updateHomeGreeting() {
+    const heading = document.getElementById('homeGreetingHeading');
+    if (!heading) return;
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      heading.textContent = 'Good morning, Ankush';
+    } else if (hour < 17) {
+      heading.textContent = 'Good afternoon, Ankush';
+    } else {
+      heading.textContent = 'Good evening, Ankush';
+    }
+  }
+
   async function loadHomeSummary() {
+    updateHomeGreeting();
+
+    // 1. Fetch normalized devices from GET /api/devices
     try {
-      // 1. Fetch camera registry
+      const devRes = await fetch('/api/devices');
+      if (devRes.ok) {
+        const devData = await devRes.json();
+        state.devices = devData.devices || [];
+
+        // Update Devices badge counter in sidebar
+        const devBadge = document.getElementById('devicesCountBadge');
+        if (devBadge) devBadge.textContent = state.devices.length;
+
+        // Render category summary capsules with genuine counts
+        renderHomeCategorySummary(state.devices);
+
+        // Render Monitored Devices quick list
+        renderHomeDevicesQuickList(state.devices);
+      }
+    } catch (err) {
+      console.error('Failed to load devices for home view:', err);
+    }
+
+    // 2. Fetch cameras registry from GET /api/cameras
+    try {
       const camRes = await fetch('/api/cameras');
       if (camRes.ok) {
         const data = await camRes.json();
         state.cameras = data.cameras || [];
-        renderHomeCamerasList(state.cameras);
 
-        // Update badge count
+        // Update Cameras badge count in sidebar
         const countBadge = document.getElementById('camerasCountBadge');
         if (countBadge) countBadge.textContent = state.cameras.length;
       }
@@ -132,59 +237,187 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to load cameras for home view:', err);
     }
 
-    // 2. Fetch recent events for home feed
+    // 3. Fetch home state & safety conditions from GET /api/home-state
     try {
-      const eventsRes = await fetch('/api/cameras/cam-main-gate/events');
+      const stateRes = await fetch('/api/home-state');
+      if (stateRes.ok) {
+        const homeState = await stateRes.json();
+        const activeConditions = homeState.active_conditions || [];
+        const alertCard = document.getElementById('homeActiveAlertCard');
+        const statusText = document.getElementById('homeSystemStateText');
+        const subtitle = document.getElementById('homeGreetingSubtitle');
+        const badge = document.getElementById('investigationNavBadge');
+
+        if (activeConditions.length > 0) {
+          if (alertCard) alertCard.style.display = 'block';
+          if (statusText) statusText.textContent = 'Incident Active';
+          if (subtitle) subtitle.textContent = 'Attention: Active safety conditions detected. Deterministic guardrails are enforced.';
+          if (badge) {
+            badge.style.display = 'inline-block';
+            badge.textContent = activeConditions.length;
+          }
+          const headline = document.getElementById('homeAlertHeadline');
+          const detail = document.getElementById('homeAlertDetail');
+          if (headline && activeConditions[0]) {
+            headline.textContent = String(activeConditions[0]).replace(/_/g, ' ').toUpperCase();
+          }
+          if (detail) {
+            detail.textContent = 'Autonomous actuation is strictly blocked by SafetyPolicy. Manual human review recommended.';
+          }
+        } else {
+          if (alertCard) alertCard.style.display = 'none';
+          if (statusText) statusText.textContent = 'System Secure';
+          if (subtitle) subtitle.textContent = 'Your home is calm. Devices and sensors are continuously monitored under strict safety guardrails.';
+          if (badge) badge.style.display = 'none';
+        }
+      }
+    } catch (err) {
+      console.warn('Home state fetch notice:', err);
+    }
+
+    // 4. Fetch recent persisted events from GET /api/events (or fallback to camera events)
+    try {
+      let events = [];
+      const eventsRes = await fetch('/api/events');
       if (eventsRes.ok) {
         const data = await eventsRes.json();
-        renderHomeEventsStream(data.events || []);
+        events = data.events || [];
       }
+      if (!events.length) {
+        const camEventsRes = await fetch('/api/cameras/cam-main-gate/events');
+        if (camEventsRes.ok) {
+          const camData = await camEventsRes.json();
+          events = camData.events || [];
+        }
+      }
+      renderHomeEventsStream(events);
     } catch (err) {
       console.error('Failed to load events for home view:', err);
     }
+
+    // 5. Update MCP Status badge
+    try {
+      const mcpRes = await fetch('/mcp');
+      if (mcpRes.ok) {
+        const mcpBadge = document.getElementById('homeMcpToolCountBadge');
+        if (mcpBadge) mcpBadge.textContent = '16 Tools Ready';
+        const topMcp = document.getElementById('mcpStatusText');
+        if (topMcp) topMcp.textContent = 'MCP Online (16 Tools)';
+      }
+    } catch (e) {
+      // quiet fallback
+    }
   }
 
-  function renderHomeCamerasList(cameras) {
-    const container = document.getElementById('homeCamerasSummaryList');
+  function renderHomeCategorySummary(devices) {
+    const container = document.getElementById('homeDeviceCategorySummary');
     if (!container) return;
 
-    if (!cameras.length) {
-      container.innerHTML = '<div class="summary-loading-placeholder">No registered cameras found.</div>';
+    // Locks
+    const locks = devices.filter(d => getDeviceCategory(d.device_type) === 'lock');
+    const lockedCount = locks.filter(d => String(d.state).toLowerCase() === 'locked').length;
+    const lockText = locks.length ? `${lockedCount} Locked` : '0 Monitored';
+
+    // Doors & Windows
+    const contacts = devices.filter(d => getDeviceCategory(d.device_type) === 'contact');
+    const openDoors = contacts.filter(d => String(d.state).toLowerCase() === 'open').length;
+    const contactText = contacts.length ? (openDoors > 0 ? `${openDoors} Open` : `${contacts.length} Monitored`) : '0 Monitored';
+
+    // Motion
+    const motionSensors = devices.filter(d => getDeviceCategory(d.device_type) === 'motion');
+    const motionDetected = motionSensors.filter(d => String(d.state).toLowerCase().includes('motion')).length;
+    const motionText = motionSensors.length ? (motionDetected > 0 ? `${motionDetected} Active` : 'All Clear') : '0 Monitored';
+
+    // Water & Plumbing
+    const waterSensors = devices.filter(d => getDeviceCategory(d.device_type) === 'water');
+    const leaks = waterSensors.filter(d => String(d.state).toLowerCase().includes('leak')).length;
+    const tank = waterSensors.find(d => d.device_type === 'water_tank_sensor');
+    const waterText = leaks > 0 ? `${leaks} Leak Alert` : (tank && tank.state ? `Tank: ${tank.state}` : `${waterSensors.length} Monitored`);
+
+    // Environmental
+    const envSensors = devices.filter(d => getDeviceCategory(d.device_type) === 'environmental');
+    const envAlerts = envSensors.filter(d => String(d.state).toLowerCase().includes('smoke') || String(d.state).toLowerCase().includes('alarm')).length;
+    const envText = envAlerts > 0 ? 'Alert' : (envSensors.length ? 'Normal' : '0 Monitored');
+
+    // Cameras
+    const cameras = devices.filter(d => getDeviceCategory(d.device_type) === 'camera');
+    const onlineCams = cameras.filter(d => String(d.status).toLowerCase() === 'online' || String(d.state).toLowerCase() === 'idle').length;
+    const offlineCams = cameras.length - onlineCams;
+    const cameraText = cameras.length ? `${onlineCams} Online${offlineCams > 0 ? ` • ${offlineCams} Off` : ''}` : '0 Configured';
+
+    const categories = [
+      { id: 'lock', icon: '🔒', name: 'Smart Locks', count: lockText, tab: 'devices', filter: 'lock' },
+      { id: 'contact', icon: '🚪', name: 'Doors & Windows', count: contactText, tab: 'devices', filter: 'contact' },
+      { id: 'motion', icon: '🚶', name: 'Motion Sensors', count: motionText, tab: 'devices', filter: 'motion' },
+      { id: 'water', icon: '💧', name: 'Water & Plumbing', count: waterText, tab: 'devices', filter: 'water' },
+      { id: 'environmental', icon: '🛡️', name: 'Environmental', count: envText, tab: 'devices', filter: 'environmental' },
+      { id: 'camera', icon: '📹', name: 'Cameras', count: cameraText, tab: 'cameras', filter: 'camera' },
+    ];
+
+    container.innerHTML = categories.map(cat => `
+      <button class="device-cat-pill" type="button" data-tab-target="${cat.tab}" data-filter-target="${cat.filter}" title="View ${cat.name}">
+        <div class="device-cat-icon">${cat.icon}</div>
+        <div class="device-cat-info">
+          <span class="device-cat-name">${cat.name}</span>
+          <span class="device-cat-count">${cat.count}</span>
+        </div>
+      </button>
+    `).join('');
+
+    container.querySelectorAll('.device-cat-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-tab-target');
+        const filter = btn.getAttribute('data-filter-target');
+        if (targetTab === 'cameras') {
+          switchTab('cameras');
+        } else {
+          switchTab('devices', { filter });
+        }
+      });
+    });
+  }
+
+  function renderHomeDevicesQuickList(devices) {
+    const container = document.getElementById('homeDevicesQuickList');
+    if (!container) return;
+
+    if (!devices || !devices.length) {
+      container.innerHTML = '<div class="summary-loading-placeholder">No devices discovered.</div>';
       return;
     }
 
-    container.innerHTML = cameras.map(cam => {
-      const isDemo = Boolean(cam.is_demo || cam.status === 'DEMO' || cam.source_mode === 'SIMULATED_DEMO');
-      const isOffline = cam.status === 'OFFLINE';
-      const badgeClass = isDemo ? 'badge-demo' : (isOffline ? 'badge-offline' : 'badge-success');
-      const badgeText = isDemo ? 'DEMO' : cam.status;
+    // Show up to 6 non-camera devices first, then cameras
+    const sorted = [...devices].sort((a, b) => {
+      if (a.device_type === 'camera' && b.device_type !== 'camera') return 1;
+      if (a.device_type !== 'camera' && b.device_type === 'camera') return -1;
+      return 0;
+    }).slice(0, 6);
+
+    container.innerHTML = sorted.map(dev => {
+      const icon = getDeviceIcon(dev.device_type);
+      const simBadge = dev.is_simulated ? '<span class="badge-simulated">SIMULATED</span>' : '';
+      const stateText = formatDeviceState(dev);
+      const stateClass = getStateTagClass(dev);
 
       return `
-        <div class="camera-summary-row">
-          <div class="cam-row-left">
-            <div class="cam-icon-box">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-              </svg>
+        <div class="home-device-row" data-device-id="${escapeHtml(dev.device_id)}" data-type="${escapeHtml(dev.device_type)}">
+          <div class="home-device-icon-box">${icon}</div>
+          <div class="home-device-details">
+            <div class="home-device-name-row">
+              <span class="home-device-title">${escapeHtml(dev.name)}</span>
+              ${simBadge}
             </div>
-            <div>
-              <div class="cam-row-name">${escapeHtml(cam.name)}</div>
-              <div class="cam-row-location">${escapeHtml(cam.location)}</div>
-            </div>
+            <span class="home-device-location">${escapeHtml(dev.location || 'Home')} • ${escapeHtml(dev.device_type.replace(/_/g, ' '))}</span>
           </div>
-          <div class="cam-row-right">
-            <span class="${badgeClass}">${escapeHtml(badgeText)}</span>
-            <button class="link-btn btn-open-cam" data-cam-id="${escapeHtml(cam.camera_id)}">View ›</button>
-          </div>
+          <span class="home-device-state-tag ${stateClass}">${escapeHtml(stateText)}</span>
         </div>
       `;
     }).join('');
 
-    container.querySelectorAll('.btn-open-cam').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const camId = btn.getAttribute('data-cam-id');
-        switchTab('viewer', { cameraId: camId });
+    container.querySelectorAll('.home-device-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = row.getAttribute('data-device-id');
+        if (id) openDeviceDrawer(id);
       });
     });
   }
@@ -196,34 +429,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!events.length) {
       container.innerHTML = `
         <div class="summary-loading-placeholder">
-          No recent camera events recorded yet.<br>
-          <span style="font-size:0.75rem; color:var(--text-tertiary);">Run analysis on a camera to create verified detection events.</span>
+          No recent events recorded yet.<br>
+          <span style="font-size:0.75rem; color:var(--text-tertiary);">Device telemetry and verified camera detections will appear here.</span>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = events.slice(0, 5).map(ev => {
+    container.innerHTML = events.slice(0, 6).map(ev => {
       const timeStr = ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : 'Recent';
-      const details = ev.data && ev.data.details ? ev.data.details : (ev.type || 'Event');
-      const conf = ev.data && ev.data.confidence ? ` (Conf: ${(ev.data.confidence * 100).toFixed(1)}%)` : '';
+      const details = (ev.data && ev.data.details) ? ev.data.details : (ev.type || 'Event');
+      const conf = (ev.data && ev.data.confidence) ? ` (Conf: ${(ev.data.confidence * 100).toFixed(1)}%)` : '';
+      const source = ev.camera_id ? `Camera: ${ev.camera_id}` : (ev.device_id ? `Device: ${ev.device_id}` : 'HomeOps Telemetry');
+      const icon = ev.camera_id ? '🎥' : (String(ev.type).includes('door') ? '🚪' : (String(ev.type).includes('water') ? '💧' : '📡'));
 
       return `
         <div class="event-summary-item">
-          <div class="event-item-icon">🎥</div>
+          <div class="event-item-icon">${icon}</div>
           <div class="event-item-content">
-            <div class="event-item-title">${escapeHtml(ev.type || 'Detection Event')}${escapeHtml(conf)}</div>
+            <div class="event-item-title">${escapeHtml(ev.type || 'System Event')}${escapeHtml(conf)}</div>
             <div class="event-item-desc">${escapeHtml(details)}</div>
-            <div class="event-item-time">${escapeHtml(timeStr)} • Camera: ${escapeHtml(ev.camera_id || 'Main Gate')}</div>
+            <div class="event-item-time">${escapeHtml(timeStr)} • ${escapeHtml(source)}</div>
           </div>
         </div>
       `;
     }).join('');
   }
 
-  // Home Quick Ask Bar
+  // Home Quick Ask Bar & Speech Recognition
   const homeQuickAskInput = document.getElementById('homeQuickAskInput');
   const homeQuickAskBtn = document.getElementById('homeQuickAskBtn');
+  const homeQuickAskVoiceBtn = document.getElementById('homeQuickAskVoiceBtn');
 
   function submitHomeAsk(query) {
     if (!query || !query.trim()) return;
@@ -247,7 +483,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Home Suggested Chips
+  if (homeQuickAskVoiceBtn && homeQuickAskInput) {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+      const rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+
+      rec.onstart = () => {
+        homeQuickAskVoiceBtn.classList.add('recording');
+        homeQuickAskInput.placeholder = 'Listening to your voice...';
+      };
+
+      rec.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        homeQuickAskInput.value = transcript;
+        submitHomeAsk(transcript);
+      };
+
+      rec.onerror = (e) => {
+        console.warn('Speech recognition notice:', e);
+        homeQuickAskVoiceBtn.classList.remove('recording');
+        homeQuickAskInput.placeholder = 'Ask anything about doors, water levels, cameras, recent activity...';
+      };
+
+      rec.onend = () => {
+        homeQuickAskVoiceBtn.classList.remove('recording');
+        homeQuickAskInput.placeholder = 'Ask anything about doors, water levels, cameras, recent activity...';
+      };
+
+      homeQuickAskVoiceBtn.addEventListener('click', () => {
+        try {
+          rec.start();
+        } catch (err) {
+          rec.stop();
+        }
+      });
+    } else {
+      homeQuickAskVoiceBtn.title = 'Speech recognition not supported in this browser';
+      homeQuickAskVoiceBtn.style.opacity = '0.5';
+    }
+  }
+
+  // Home Suggested Chips (Exact Required Queries)
   document.querySelectorAll('.home-quick-chips .quick-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const q = chip.getAttribute('data-query');
@@ -256,7 +535,225 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Screen 2: Cameras Screen Logic
+  // Screen 2: Devices Screen Logic (Normalized Hardware Directory)
+  // -------------------------------------------------------------------------
+  let activeDeviceFilter = 'all';
+  let deviceSearchQuery = '';
+
+  async function loadDevices(filter = 'all') {
+    activeDeviceFilter = filter;
+    const container = document.getElementById('devicesGridContainer');
+    if (!container) return;
+
+    // Update filter capsules UI
+    document.querySelectorAll('#devicesCategoryFilterRow .filter-capsule').forEach(btn => {
+      const f = btn.getAttribute('data-filter');
+      btn.classList.toggle('active', f === filter);
+    });
+
+    try {
+      if (!state.devices || !state.devices.length) {
+        const res = await fetch('/api/devices');
+        if (res.ok) {
+          const data = await res.json();
+          state.devices = data.devices || [];
+        }
+      }
+      renderDevicesGrid();
+    } catch (err) {
+      console.error('Failed to load devices:', err);
+      container.innerHTML = '<div class="summary-loading-placeholder">Failed to load device registry.</div>';
+    }
+  }
+
+  function renderDevicesGrid() {
+    const container = document.getElementById('devicesGridContainer');
+    if (!container) return;
+
+    let filtered = state.devices || [];
+    if (activeDeviceFilter !== 'all') {
+      filtered = filtered.filter(d => getDeviceCategory(d.device_type) === activeDeviceFilter);
+    }
+    if (deviceSearchQuery.trim()) {
+      const q = deviceSearchQuery.toLowerCase();
+      filtered = filtered.filter(d =>
+        d.name.toLowerCase().includes(q) ||
+        d.device_type.toLowerCase().includes(q) ||
+        (d.location && d.location.toLowerCase().includes(q))
+      );
+    }
+
+    if (!filtered.length) {
+      container.innerHTML = '<div class="summary-loading-placeholder">No matching devices found.</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(dev => {
+      const icon = getDeviceIcon(dev.device_type);
+      const simBadge = dev.is_simulated ? '<span class="badge-simulated">SIMULATED</span>' : '';
+      const stateText = formatDeviceState(dev);
+      const stateClass = getStateTagClass(dev);
+
+      return `
+        <div class="camera-card" data-device-id="${escapeHtml(dev.device_id)}">
+          <div class="camera-card-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <div class="home-device-icon-box">${icon}</div>
+              <div>
+                <div class="camera-card-name">${escapeHtml(dev.name)}</div>
+                <div class="camera-card-location">${escapeHtml(dev.location || 'Home')}</div>
+              </div>
+            </div>
+            ${simBadge}
+          </div>
+          <div style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface-subtle); border-radius: var(--radius-sm); margin: 0.75rem;">
+            <span style="font-size: 0.78rem; color: var(--text-secondary); text-transform: capitalize;">${escapeHtml(dev.device_type.replace(/_/g, ' '))}</span>
+            <span class="home-device-state-tag ${stateClass}">${escapeHtml(stateText)}</span>
+          </div>
+          <div style="padding: 0 0.75rem 0.75rem; font-size: 0.72rem; color: var(--text-tertiary); display: flex; justify-content: space-between;">
+            <span>ID: ${escapeHtml(dev.device_id)}</span>
+            <span>Status: ${escapeHtml(dev.status || 'ONLINE')}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.camera-card[data-device-id]').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-device-id');
+        if (id) openDeviceDrawer(id);
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Device Details Drawer Logic
+  // -------------------------------------------------------------------------
+  let currentDrawerDevice = null;
+
+  async function openDeviceDrawer(deviceId) {
+    if (!deviceId) return;
+
+    let dev = (state.devices || []).find(d => d.device_id === deviceId);
+    if (!dev) {
+      try {
+        const res = await fetch(`/api/devices/${deviceId}`);
+        if (res.ok) dev = await res.json();
+      } catch (e) {
+        console.warn('Failed to fetch device details:', e);
+      }
+    }
+    if (!dev) return;
+
+    currentDrawerDevice = dev;
+
+    const iconEl = document.getElementById('drawerDeviceIcon');
+    const titleEl = document.getElementById('drawerDeviceTitle');
+    const subtitleEl = document.getElementById('drawerDeviceSubtitle');
+    const stateEl = document.getElementById('drawerDeviceState');
+    const statusEl = document.getElementById('drawerDeviceStatus');
+    const locationEl = document.getElementById('drawerDeviceLocation');
+    const providerEl = document.getElementById('drawerDeviceProvider');
+    const simBanner = document.getElementById('drawerSimulatedBanner');
+    const attrSection = document.getElementById('drawerAttributesSection');
+    const attrList = document.getElementById('drawerAttributesList');
+    const drawer = document.getElementById('deviceDetailsDrawer');
+    const backdrop = document.getElementById('deviceDrawerBackdrop');
+
+    if (iconEl) iconEl.textContent = getDeviceIcon(dev.device_type);
+    if (titleEl) titleEl.textContent = dev.name || dev.device_id;
+    if (subtitleEl) subtitleEl.textContent = `${dev.device_id} • ${(dev.device_type || '').replace(/_/g, ' ')}`;
+    if (stateEl) {
+      stateEl.textContent = formatDeviceState(dev);
+      stateEl.className = `drawer-fact-value home-device-state-tag ${getStateTagClass(dev)}`;
+    }
+    if (statusEl) statusEl.textContent = (dev.status || 'ONLINE').toUpperCase();
+    if (locationEl) locationEl.textContent = dev.location || 'Home';
+    if (providerEl) providerEl.textContent = dev.provider_id || (dev.is_simulated ? 'simulator' : 'home_assistant');
+
+    if (simBanner) {
+      simBanner.style.display = dev.is_simulated ? 'block' : 'none';
+    }
+
+    if (attrSection && attrList) {
+      const attrs = dev.attributes || {};
+      const keys = Object.keys(attrs);
+      if (keys.length > 0) {
+        attrSection.style.display = 'block';
+        attrList.innerHTML = keys.map(k => `
+          <div class="drawer-attribute-item">
+            <span class="drawer-attribute-key">${escapeHtml(k.replace(/_/g, ' '))}:</span>
+            <span class="drawer-attribute-val">${escapeHtml(String(attrs[k]))}</span>
+          </div>
+        `).join('');
+      } else {
+        attrSection.style.display = 'none';
+      }
+    }
+
+    if (drawer) {
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+    if (backdrop) backdrop.style.display = 'block';
+  }
+
+  function closeDeviceDrawer() {
+    const drawer = document.getElementById('deviceDetailsDrawer');
+    const backdrop = document.getElementById('deviceDrawerBackdrop');
+    if (drawer) {
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+    if (backdrop) backdrop.style.display = 'none';
+  }
+
+  const closeDeviceDrawerBtn = document.getElementById('closeDeviceDrawerBtn');
+  if (closeDeviceDrawerBtn) closeDeviceDrawerBtn.addEventListener('click', closeDeviceDrawer);
+
+  const deviceDrawerBackdrop = document.getElementById('deviceDrawerBackdrop');
+  if (deviceDrawerBackdrop) deviceDrawerBackdrop.addEventListener('click', closeDeviceDrawer);
+
+  const drawerAskAboutBtn = document.getElementById('drawerAskAboutBtn');
+  if (drawerAskAboutBtn) {
+    drawerAskAboutBtn.addEventListener('click', () => {
+      if (currentDrawerDevice) {
+        const q = `What is the status of ${currentDrawerDevice.name}?`;
+        closeDeviceDrawer();
+        submitHomeAsk(q);
+      }
+    });
+  }
+
+  // Devices filter capsule clicks
+  document.querySelectorAll('#devicesCategoryFilterRow .filter-capsule').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.getAttribute('data-filter') || 'all';
+      loadDevices(filter);
+    });
+  });
+
+  // Devices search input
+  const devicesSearchInput = document.getElementById('devicesSearchInput');
+  if (devicesSearchInput) {
+    devicesSearchInput.addEventListener('input', (e) => {
+      deviceSearchQuery = e.target.value;
+      renderDevicesGrid();
+    });
+  }
+
+  // Refresh devices button
+  const refreshDevicesBtn = document.getElementById('refreshDevicesBtn');
+  if (refreshDevicesBtn) {
+    refreshDevicesBtn.addEventListener('click', async () => {
+      state.devices = [];
+      await loadDevices(activeDeviceFilter);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Screen 3: Cameras Screen Logic
   // -------------------------------------------------------------------------
   async function loadCamerasRegistry() {
     const container = document.getElementById('camerasGridContainer');
@@ -851,6 +1348,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         const tools = data.tools || [];
         state.mcpTools = tools;
+
+        const badge = document.getElementById('settingsMcpToolsBadge');
+        if (badge) badge.textContent = `${tools.length} Tools Connected`;
 
         list.innerHTML = tools.map(t => `
           <div class="tool-badge-item">

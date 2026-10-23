@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/app.css?v=5.0">
+  <link rel="stylesheet" href="/static/app.css?v=5.2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%232563EB%22/><text y=%22.75em%22 x=%22.15em%22 font-size=%2265%22 fill=%22white%22>🛡️</text></svg>">
 </head>
 <body>
@@ -34,7 +34,7 @@
           </div>
         </div>
 
-        <!-- Navigation Tabs -->
+        <!-- Navigation Tabs (7 Primary Destinations) -->
         <nav class="sidebar-nav" role="tablist">
           <button class="nav-tab-btn active" data-tab="home" id="tab-home" role="tab" aria-selected="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -42,6 +42,30 @@
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
             <span>Home</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="ask" id="tab-ask" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Ask HomeOps</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="devices" id="tab-devices" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+              <rect x="9" y="9" width="6" height="6"></rect>
+              <line x1="9" y1="1" x2="9" y2="4"></line>
+              <line x1="15" y1="1" x2="15" y2="4"></line>
+              <line x1="9" y1="20" x2="9" y2="23"></line>
+              <line x1="15" y1="20" x2="15" y2="23"></line>
+              <line x1="20" y1="9" x2="23" y2="9"></line>
+              <line x1="20" y1="14" x2="23" y2="14"></line>
+              <line x1="1" y1="9" x2="4" y2="9"></line>
+              <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+            <span>Devices</span>
+            <span class="nav-counter" id="devicesCountBadge">10</span>
           </button>
 
           <button class="nav-tab-btn" data-tab="cameras" id="tab-cameras" role="tab">
@@ -53,28 +77,20 @@
             <span class="nav-counter" id="camerasCountBadge">3</span>
           </button>
 
-          <button class="nav-tab-btn" data-tab="viewer" id="tab-viewer" role="tab">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="23 7 16 12 23 17 23 7"></polygon>
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-            </svg>
-            <span>Camera Viewer</span>
-          </button>
-
-          <button class="nav-tab-btn" data-tab="ask" id="tab-ask" role="tab">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-            <span>Ask HomeOps</span>
-          </button>
-
           <button class="nav-tab-btn" data-tab="investigation" id="tab-investigation" role="tab">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <span>Safety & Investigation</span>
+            <span>Safety & Investigations</span>
             <span class="nav-badge" id="investigationNavBadge" style="display:none;">1</span>
+          </button>
+
+          <button class="nav-tab-btn" data-tab="automations" id="tab-automations" role="tab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Automations & Rules</span>
           </button>
 
           <button class="nav-tab-btn" data-tab="settings" id="tab-settings" role="tab">
@@ -82,7 +98,7 @@
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
             </svg>
-            <span>System Status</span>
+            <span>Settings & Integrations</span>
           </button>
         </nav>
       </div>
@@ -146,25 +162,46 @@
         <!-- Hero Warm Greeting Banner -->
         <div class="alexa-hero-banner">
           <div class="hero-text-block">
-            <div class="hero-badge-pill">Home Safety Assistant</div>
-            <h1 class="hero-greeting-heading">Good evening, Ankush</h1>
+            <div class="hero-badge-pill" id="homeGreetingBadge">Home Safety Assistant</div>
+            <h1 class="hero-greeting-heading" id="homeGreetingHeading">Good evening, Ankush</h1>
             <p class="hero-status-message" id="homeGreetingSubtitle">
-              Your home is calm. 3 cameras configured, sensors are monitored, and no physical actions are automated.
+              Your home is calm. Devices and sensors are continuously monitored, with safety guardrails active.
             </p>
           </div>
           <div class="hero-action-block">
-            <div class="hero-safety-pill">
-              <span class="shield-icon">🛡️</span>
+            <div class="hero-safety-pill" id="homeSafetyStatusPill">
+              <span class="shield-icon" id="homeSafetyShieldIcon">🛡️</span>
               <span id="homeSystemStateText">System Secure</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Active Safety Incident Card (Dynamically displayed when safety policy flags an active condition) -->
+        <div class="home-active-alert-card" id="homeActiveAlertCard" style="display: none;">
+          <div class="alert-card-header">
+            <div class="alert-card-title-group">
+              <span class="alert-pulse-dot"></span>
+              <span class="alert-card-tag" id="homeAlertSeverityBadge">HIGH SEVERITY INCIDENT</span>
+              <span class="alert-card-time" id="homeAlertTime">Just now</span>
+            </div>
+            <button class="alert-investigate-btn" id="homeAlertInvestigateBtn" type="button">
+              Investigate in Safety & Investigations →
+            </button>
+          </div>
+          <div class="alert-card-body">
+            <h3 class="alert-card-headline" id="homeAlertHeadline">Back Door Sensor Opened</h3>
+            <p class="alert-card-detail" id="homeAlertDetail">Deterministic guardrail triggered. Autonomous locking is blocked by safety policy. Human review recommended.</p>
           </div>
         </div>
 
         <!-- Prominent "Ask HomeOps" Search & Voice Bar -->
         <div class="home-ask-bar-card">
           <div class="ask-bar-header">
-            <span class="ask-bar-title">Ask HomeOps</span>
-            <span class="ask-bar-hint">Powered by Conversational Intelligence & MCP Tools</span>
+            <div class="ask-bar-title-wrap">
+              <span class="ask-bar-title">Ask HomeOps</span>
+              <span class="ask-bar-hint">Conversational assistant with live tool audit</span>
+            </div>
+            <span class="ask-badge-status" id="homeMcpToolCountBadge">16 Tools Ready</span>
           </div>
           <div class="ask-input-row">
             <div class="ask-search-icon">
@@ -174,56 +211,63 @@
               type="text"
               id="homeQuickAskInput"
               class="home-ask-input"
-              placeholder="Ask anything about cameras, back door, recent activity, or security status..."
+              placeholder="Ask anything about doors, water levels, cameras, recent activity, or security status..."
               autocomplete="off"
             />
-            <button class="ask-submit-btn" id="homeQuickAskBtn" title="Ask HomeOps">
+            <button class="ask-voice-btn" id="homeQuickAskVoiceBtn" title="Voice Input (Speech-to-Text)" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            <button class="ask-submit-btn" id="homeQuickAskBtn" title="Ask HomeOps" type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
               <span>Ask</span>
             </button>
           </div>
 
-          <!-- Quick Suggestion Chips -->
+          <!-- Quick Suggestion Chips (Exact required queries) -->
           <div class="home-quick-chips">
             <span class="chips-label">Suggested:</span>
-            <button class="quick-chip" data-query="What happened at the main gate?">What happened at the main gate?</button>
-            <button class="quick-chip" data-query="Show recent camera events">Show recent camera events</button>
-            <button class="quick-chip" data-query="Check the garage camera">Check the garage camera</button>
-            <button class="quick-chip" data-query="Something happened at my back door. Should I be worried?">Something happened at my back door. Should I be worried?</button>
+            <button class="quick-chip" data-query="Is my home secure?">Is my home secure?</button>
+            <button class="quick-chip" data-query="Is the water tank level low?">Is the water tank level low?</button>
+            <button class="quick-chip" data-query="Did anyone open the back door?">Did anyone open the back door?</button>
+            <button class="quick-chip" data-query="Which devices are offline?">Which devices are offline?</button>
             <button class="quick-chip" data-query="List my cameras">List my cameras</button>
           </div>
         </div>
 
-        <!-- 2-Column Overview: Camera Cards Summary + Recent Event Feed -->
+        <!-- Category Device Summary Row (Derived honestly from live API responses) -->
+        <div class="home-category-summary-row" id="homeDeviceCategorySummary">
+          <!-- 6 category capsules populated dynamically via API -->
+          <div class="summary-loading-placeholder">Loading device telemetry...</div>
+        </div>
+
+        <!-- 2-Column Overview: Monitored Devices + Curated Recent Events -->
         <div class="home-overview-grid">
-          <!-- Camera Status Summary Column -->
+          <!-- Monitored Devices Quick Overview -->
           <div class="home-overview-card">
             <div class="card-section-header">
               <div>
-                <h3 class="section-title">Camera Status Overview</h3>
-                <p class="section-subtitle">Real-time status of configured home cameras</p>
+                <h3 class="section-title">Monitored Devices</h3>
+                <p class="section-subtitle">Real-time normalized device telemetry</p>
               </div>
-              <button class="link-btn" id="homeViewAllCamerasBtn">View All Cameras ›</button>
+              <button class="link-btn" id="homeViewAllDevicesBtn" type="button">View All Devices ›</button>
             </div>
 
-            <div class="home-cameras-summary-list" id="homeCamerasSummaryList">
-              <!-- Dynamically populated from GET /api/cameras -->
-              <div class="summary-loading-placeholder">Loading camera registry...</div>
+            <div class="home-devices-quick-list" id="homeDevicesQuickList">
+              <div class="summary-loading-placeholder">Loading device list...</div>
             </div>
           </div>
 
-          <!-- Recent Persisted Camera & Safety Events -->
+          <!-- Recent Persisted Events Stream -->
           <div class="home-overview-card">
             <div class="card-section-header">
               <div>
-                <h3 class="section-title">Recent Persisted Events</h3>
-                <p class="section-subtitle">Genuine detections and sensor telemetry</p>
+                <h3 class="section-title">Recent Activity</h3>
+                <p class="section-subtitle">Genuine persisted events and telemetry</p>
               </div>
-              <button class="link-btn" id="homeRefreshEventsBtn">Refresh</button>
+              <button class="link-btn" id="homeRefreshEventsBtn" type="button">Refresh</button>
             </div>
 
             <div class="home-events-stream" id="homeRecentEventsStream">
-              <!-- Dynamically populated from GET /api/cameras/.../events and state -->
               <div class="summary-loading-placeholder">Loading recent events...</div>
             </div>
           </div>
@@ -231,7 +275,47 @@
       </section>
 
       <!-- ====================================================================
-           SCREEN 2: CAMERAS (Responsive Grid of Configured Camera Cards)
+           SCREEN 2: DEVICES (Hardware & Sensor Directory with Category Filters)
+           ==================================================================== -->
+      <section class="view-section" id="view-devices">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Connected Devices</h1>
+            <p class="page-description">Normalized smart-home devices and sensors. Simulated devices are explicitly labeled.</p>
+          </div>
+          <div class="device-actions-row">
+            <button class="secondary-btn" id="refreshDevicesBtn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>Refresh Devices</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="devices-filter-bar">
+          <div class="filter-search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="devicesSearchInput" placeholder="Search devices by name, type, or room..." autocomplete="off" />
+          </div>
+          <div class="filter-capsules-group" id="devicesCategoryFilterRow">
+            <button class="filter-capsule active" data-filter="all" type="button">All Devices</button>
+            <button class="filter-capsule" data-filter="lock" type="button">Locks</button>
+            <button class="filter-capsule" data-filter="contact" type="button">Doors & Windows</button>
+            <button class="filter-capsule" data-filter="motion" type="button">Motion</button>
+            <button class="filter-capsule" data-filter="water" type="button">Water & Plumbing</button>
+            <button class="filter-capsule" data-filter="environmental" type="button">Environmental</button>
+            <button class="filter-capsule" data-filter="camera" type="button">Cameras</button>
+          </div>
+        </div>
+
+        <div class="devices-cards-grid" id="devicesGridContainer">
+          <!-- Populated dynamically via GET /api/devices -->
+          <div class="summary-loading-placeholder">Loading device directory...</div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 3: CAMERAS (Responsive Grid of Configured Camera Cards)
            ==================================================================== -->
       <section class="view-section" id="view-cameras">
         <div class="page-header-row">
@@ -607,7 +691,42 @@
       </section>
 
       <!-- ====================================================================
-           SCREEN 6: SYSTEM STATUS & SETTINGS (Clean Transparent System View)
+           SCREEN 6: AUTOMATIONS & GUARDRAILS (Strict Safety Rules)
+           ==================================================================== -->
+      <section class="view-section" id="view-automations">
+        <div class="page-header-row">
+          <div>
+            <h1 class="page-title">Automations & Safety Guardrails</h1>
+            <p class="page-description">Configured safety boundaries and notification rules. Physical actuation strictly requires human confirmation.</p>
+          </div>
+        </div>
+
+        <div class="automations-grid">
+          <div class="automation-card guardrail-card">
+            <div class="guardrail-badge">ACTIVE DETERMINISTIC GUARDRAIL</div>
+            <h3>Autonomous Actuation Prohibition</h3>
+            <p>Physical door locking, valve shutdown, and power cutoff are never executed autonomously by AI agents or routines without explicit human confirmation.</p>
+            <div class="policy-rule-tag">Policy: STRICT DETERMINISTIC SAFETY</div>
+          </div>
+
+          <div class="automation-card">
+            <div class="automation-status-pill status-active">ACTIVE RULE</div>
+            <h3>Late-Night Perimeter Alert</h3>
+            <p>Triggers a High Severity safety alert when exterior contact sensors open between 11:00 PM and 6:00 AM.</p>
+            <div class="automation-meta">Trigger: ContactSensor (Back Door) • Evaluated by IncidentEngine</div>
+          </div>
+
+          <div class="automation-card">
+            <div class="automation-status-pill status-active">ACTIVE RULE</div>
+            <h3>Water Hazard Detection</h3>
+            <p>Monitors water leak sensors and water tank level sensors. Triggers an alert when moisture is detected or tank levels report abnormality.</p>
+            <div class="automation-meta">Trigger: LeakSensor, WaterTankSensor • Evaluated by IncidentEngine</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================================
+           SCREEN 7: SYSTEM STATUS & SETTINGS (Clean Transparent System View)
            ==================================================================== -->
       <section class="view-section" id="view-settings">
         <div class="page-header-row">
@@ -622,7 +741,7 @@
           <div class="settings-card">
             <div class="settings-card-header">
               <h3 class="settings-card-title">Streamable HTTP MCP Server</h3>
-              <span class="badge-success">12 Tools Connected</span>
+              <span class="badge-success" id="settingsMcpToolsBadge">16 Tools Connected</span>
             </div>
             <p class="settings-card-desc">
               HomeOps connects via official Model Context Protocol (MCP SDK 2.2.0) with real registered tools for sensor state, camera footage, risk evaluation, and incident recording.
@@ -630,6 +749,32 @@
 
             <div class="mcp-tools-grid" id="mcpToolsList">
               <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+
+          <!-- Integration Providers Readiness Card -->
+          <div class="settings-card">
+            <h3 class="settings-card-title">Integration Providers Readiness</h3>
+            <div class="status-detail-list">
+              <div class="status-detail-row">
+                <span>Simulator Provider</span>
+                <span class="badge-success">ACTIVE (Deterministic)</span>
+              </div>
+              <div class="status-detail-row">
+                <span>Home Assistant Provider</span>
+                <span class="badge-demo">CONFIGURED (REST / WS Ready)</span>
+              </div>
+              <div class="status-detail-row">
+                <span>Hardware RTSP/ONVIF Ingestion</span>
+                <span class="badge-demo">READY FOR PHYSICAL HOST</span>
+              </div>
+              <div class="status-detail-row">
+                <span>Autonomous Actuation Boundary</span>
+                <span class="badge-offline">STRICTLY BLOCKED</span>
+              </div>
+            </div>
+            <div class="settings-note">
+              No live credentials or access tokens are exposed in the client. Home Assistant connects via secure local token when configured.
             </div>
           </div>
 
@@ -675,6 +820,74 @@
   </div>
 
   <!-- ========================================================================
+       Device Details Slide-over Drawer
+       ======================================================================== -->
+  <div class="drawer-backdrop" id="deviceDrawerBackdrop" style="display: none;"></div>
+  <aside class="device-details-drawer" id="deviceDetailsDrawer" aria-hidden="true">
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <span class="drawer-device-icon" id="drawerDeviceIcon">🔒</span>
+        <div>
+          <h2 class="drawer-device-title" id="drawerDeviceTitle">Device Details</h2>
+          <span class="drawer-device-subtitle" id="drawerDeviceSubtitle">-</span>
+        </div>
+      </div>
+      <button class="drawer-close-btn" id="closeDeviceDrawerBtn" aria-label="Close drawer" type="button">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Simulated Notice Banner (dynamically displayed if is_simulated) -->
+      <div class="drawer-simulated-banner" id="drawerSimulatedBanner" style="display: none;">
+        <span class="drawer-sim-tag">SIMULATED FIXTURE</span>
+        <p>This entity is a deterministic software fixture. No physical hardware is claimed to be connected.</p>
+      </div>
+
+      <!-- Telemetry Facts Grid -->
+      <div class="drawer-section">
+        <h3 class="drawer-section-title">Reported State & Status</h3>
+        <div class="drawer-facts-grid">
+          <div class="drawer-fact-card">
+            <span class="drawer-fact-label">Reported State</span>
+            <span class="drawer-fact-value" id="drawerDeviceState">-</span>
+          </div>
+          <div class="drawer-fact-card">
+            <span class="drawer-fact-label">Connection</span>
+            <span class="drawer-fact-value" id="drawerDeviceStatus">ONLINE</span>
+          </div>
+          <div class="drawer-fact-card">
+            <span class="drawer-fact-label">Room / Location</span>
+            <span class="drawer-fact-value" id="drawerDeviceLocation">-</span>
+          </div>
+          <div class="drawer-fact-card">
+            <span class="drawer-fact-label">Integration Provider</span>
+            <span class="drawer-fact-value" id="drawerDeviceProvider">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sensor Attributes (Only displayed when actual telemetry is reported) -->
+      <div class="drawer-section" id="drawerAttributesSection" style="display: none;">
+        <h3 class="drawer-section-title">Sensor Telemetry Attributes</h3>
+        <div class="drawer-attributes-list" id="drawerAttributesList">
+          <!-- Populated from genuine device.attributes -->
+        </div>
+      </div>
+
+      <!-- Deterministic Safety Notice -->
+      <div class="drawer-guardrail-card">
+        <div class="guardrail-badge">DETERMINISTIC SAFETY GUARDRAIL</div>
+        <p>Remote physical manipulation (locking, unlocking, valve shutdown) is prohibited by SafetyPolicy. Autonomous actuation remains strictly disabled.</p>
+      </div>
+    </div>
+
+    <div class="drawer-footer">
+      <button class="secondary-btn" id="drawerAskAboutBtn" type="button" style="width: 100%; justify-content: center;">
+        Ask HomeOps About This Device ›
+      </button>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
        MCP JSON Inspector Modal
        ======================================================================== -->
   <div class="modal-overlay" id="jsonInspectorModal" style="display: none;">
@@ -700,6 +913,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script src="/static/app.js?v=5.0"></script>
+  <script src="/static/app.js?v=5.2"></script>
 </body>
 </html>
